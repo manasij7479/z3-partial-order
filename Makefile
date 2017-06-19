@@ -9,10 +9,10 @@ z3/buildd/libz3.so : z3/patched z3/buildd/rules.ninja
 	# make -C z3/buildd -j9
 
 z3/buildd/rules.ninja: $(shell find ./z3/scripts/ -type f -name '*')
-	cd utils; ./link_extra_files.sh
+	cd utils; ./link_extra_files.sh;
 	mkdir -p z3/buildd
 	# cd z3; python scripts/mk_make.py --staticlib -d -t -b buildd
-	cd z3/buildd; cmake ../ -GNinja
+	cd z3/buildd; cmake -DCMAKE_BUILD_TYPE=Debug ../ -GNinja
 
 z3/patched : po.patch z3/README.md
 	cd z3; git stash clear && git stash save && git apply --whitespace=fix $(PWD)/po.patch
