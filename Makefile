@@ -9,7 +9,7 @@ z3/buildd/libz3.so : z3/patched z3/buildd/rules.ninja
 	# make -C z3/buildd -j9
 
 z3/buildd/rules.ninja: $(shell find ./z3/scripts/ -type f -name '*')
-	pushd .; cd utils; source link_extra_files.sh; popd;
+	cd utils; source link_extra_files.sh;
 	mkdir -p z3/buildd
 	# cd z3; python scripts/mk_make.py --staticlib -d -t -b buildd
 	cd z3/buildd; cmake ../ -GNinja
@@ -26,7 +26,7 @@ z3/README.md :
 	cd z3;git add -A; git diff-index --quiet HEAD || git commit -m "clean z3 version"
 
 clean :
-	rm -rf $(PWD)/z3/
+	rm -rf $(PWD)/z3/buildd
 
 patch :
 	cd z3; git diff > ../po.patch
