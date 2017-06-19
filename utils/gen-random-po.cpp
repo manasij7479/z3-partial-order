@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
   	int a = std::rand() % num_vars;
   	int b = std::rand() % num_vars;
   	if (a != b && used.find(std::make_pair(a, b)) == used.end()) {
-      std::cout << "(assert (!(partial-order v" << a << " v" << b << ")))\n";
+      std::cout << "(assert (not (partial-order v" << a << " v" << b << ")))\n";
       used.insert(std::make_pair(a, b));
   	} else {
       --i;
