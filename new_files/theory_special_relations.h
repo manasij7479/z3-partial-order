@@ -41,7 +41,7 @@ namespace smt {
             edge_id     m_neg;
         public:
             atom(bool_var b, relation& r, theory_var v1, theory_var v2):
-                m_bvar(b), 
+                m_bvar(b),
                 m_relation(r),
                 m_phase(true),
                 m_v1(v1),
@@ -73,7 +73,7 @@ namespace smt {
             unsigned m_asserted_atoms_lim;
             unsigned m_asserted_qhead_old;
         };
-        
+
         struct int_ext : public sidl_ext {
             typedef literal_vector explanation;
         };
@@ -85,7 +85,7 @@ namespace smt {
             sr_property           m_property;
             func_decl*            m_decl;
             atoms                 m_asserted_atoms;   // set of asserted atoms
-            unsigned              m_asserted_qhead;   
+            unsigned              m_asserted_qhead;
             svector<scope>        m_scopes;
             graph                 m_graph;
             union_find_default_ctx m_ufctx;
@@ -148,7 +148,7 @@ namespace smt {
     public:
         theory_special_relations(ast_manager& m);
         virtual ~theory_special_relations();
-        
+
         virtual theory * mk_fresh(context * new_ctx);
         virtual bool internalize_atom(app * atom, bool gate_ctx);
         virtual bool internalize_term(app * term) { UNREACHABLE(); return false; }
@@ -165,7 +165,7 @@ namespace smt {
         virtual void restart_eh() {}
         virtual void collect_statistics(::statistics & st) const;
         virtual model_value_proc * mk_value(enode * n, model_generator & mg);
-        virtual void init_model(model_generator & m);        
+        virtual void init_model(model_generator & m);
         virtual bool can_propagate() { return false; }
         virtual void propagate() {}
         virtual void display(std::ostream & out) const;

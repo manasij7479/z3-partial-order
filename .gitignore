@@ -1,0 +1,5 @@
+.DS_Store
+.z3-trace
+utils/gen-random-po
+z3.out
+z3/

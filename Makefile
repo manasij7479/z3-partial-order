@@ -7,6 +7,7 @@ debug : z3/buildd/libz3.so
 z3/buildd/libz3.so : z3/patched z3/buildd/rules.ninja
 	ninja -C z3/buildd
 	# make -C z3/buildd -j9
+	ln -s z3/buildd/z3 z3.out
 
 z3/buildd/rules.ninja: $(shell find ./z3/scripts/ -type f -name '*')
 	cd utils; ./link_extra_files.sh;

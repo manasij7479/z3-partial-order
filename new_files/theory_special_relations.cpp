@@ -28,7 +28,7 @@ namespace smt {
         m_scopes.push_back(scope());
         scope& s = m_scopes.back();
         s.m_asserted_atoms_lim = m_asserted_atoms.size();
-        s.m_asserted_qhead_old = m_asserted_qhead;       
+        s.m_asserted_qhead_old = m_asserted_qhead;
         m_graph.push();
         m_ufctx.get_trail_stack().push_scope();
     }
@@ -41,7 +41,7 @@ namespace smt {
         m_scopes.shrink(new_lvl);
         m_graph.pop(num_scopes);
         m_ufctx.get_trail_stack().pop_scope(num_scopes);
-    }            
+    }
 
     void theory_special_relations::relation::ensure_var(theory_var v) {
         while ((unsigned)v > m_uf.mk_var());
@@ -55,9 +55,9 @@ namespace smt {
         ensure_var(v2);
         literal_vector ls;
         ls.push_back(l);
-        return 
+        return
             m_graph.enable_edge(m_graph.add_edge(v1, v2, s_integer(0), ls)) &&
-            m_graph.enable_edge(m_graph.add_edge(v2, v1, s_integer(0), ls));            
+            m_graph.enable_edge(m_graph.add_edge(v2, v1, s_integer(0), ls));
     }
 
     theory_special_relations::theory_special_relations(ast_manager& m):
@@ -68,7 +68,7 @@ namespace smt {
     theory_special_relations::~theory_special_relations() {
         reset_eh();
     }
-    
+
     theory * theory_special_relations::mk_fresh(context * new_ctx) {
         return alloc(theory_special_relations, new_ctx->get_manager());
     }
@@ -79,7 +79,7 @@ namespace smt {
         relation* r = 0;
         if (!m_relations.find(atm->get_decl(), r)) {
           //todo: push pop may get misaligned if the following alloc happens after push
-            r = alloc(relation, m_util.get_property(atm), atm->get_decl()); 
+            r = alloc(relation, m_util.get_property(atm), atm->get_decl());
             m_relations.insert(atm->get_decl(), r);
         }
         context& ctx = get_context();
@@ -99,7 +99,7 @@ namespace smt {
         context& ctx = get_context();
         if (!ctx.e_internalized(e)) {
             ctx.internalize(e, false);
-        }        
+        }
         enode * n = ctx.get_enode(e);
         theory_var v = n->get_th_var(get_id());
         if (null_theory_var == v) {
@@ -124,7 +124,7 @@ namespace smt {
                 set_neg_cycle_conflict(r);
                 break;
             }
-        }        
+        }
     }
 
     final_check_status theory_special_relations::final_check_eh() {
@@ -178,24 +178,24 @@ namespace smt {
                     r.m_explanation.push_back(a.explanation());
                     set_conflict(r);
                     res = l_false;
-                }                
+                }
             }
-        }        
+        }
         return res;
     }
 
-    lbool theory_special_relations::final_check_plo(relation& r) {        
+    lbool theory_special_relations::final_check_plo(relation& r) {
         //
-        // ensure that !Rxy -> Ryx between connected components 
+        // ensure that !Rxy -> Ryx between connected components
         // (where Rzx & Rzy or Rxz & Ryz for some z)
-        // 
+        //
         lbool res = l_true;
         for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
             atom& a = *r.m_asserted_atoms[i];
             if (!a.phase() && r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
                 res = enable(a);
             }
-        }        
+        }
         return res;
     }
 
@@ -235,7 +235,7 @@ namespace smt {
                 // e.g., if we add an edge, do we have to repeat the loop?
                 //
             }
-        }        
+        }
         return res;
     }
 
@@ -258,13 +258,13 @@ namespace smt {
 
     void theory_special_relations::set_conflict(relation& r) {
         literal_vector const& lits = r.m_explanation;
-        context & ctx = get_context(); 
-        vector<parameter> params;   
+        context & ctx = get_context();
+        vector<parameter> params;
         ctx.set_conflict(
             ctx.mk_justification(
                 ext_theory_conflict_justification(
-                    get_id(), ctx.get_region(), 
-                    lits.size(), lits.c_ptr(), 0, 0, params.size(), params.c_ptr())));        
+                    get_id(), ctx.get_region(),
+                    lits.size(), lits.c_ptr(), 0, 0, params.size(), params.c_ptr())));
     }
 
     lbool theory_special_relations::final_check(relation& r) {
@@ -286,7 +286,7 @@ namespace smt {
         default:
             UNREACHABLE();
             res = l_undef;
-        }        
+        }
         return res;
     }
 
@@ -382,8 +382,8 @@ namespace smt {
         for (; it != end; ++it) {
             dealloc(it->m_value);
         }
-        m_relations.reset();    
-        del_atoms(0);        
+        m_relations.reset();
+        del_atoms(0);
     }
 
     void theory_special_relations::assign_eh(bool_var v, bool is_true) {
@@ -419,7 +419,7 @@ namespace smt {
             atom * a     = *it;
             m_bool_var2atom.erase(a->var());
             dealloc(a);
-        }    
+        }
         m_atoms.shrink(old_size);
     }
 
@@ -445,7 +445,7 @@ namespace smt {
             dl_var dst = g.get_target(i);
             if (get_enode(src)->get_root() == get_enode(dst)->get_root()) continue;
             VERIFY(g.enable_edge(g.add_edge(src, dst, s_integer(-1), literal_vector())));
-        }        
+        }
         TRACE("special_relations", g.display(tout););
     }
 
@@ -469,7 +469,7 @@ namespace smt {
                     }
                 }
             }
-        }        
+        }
         TRACE("special_relations", g.display(tout););
     }
 
@@ -500,7 +500,7 @@ namespace smt {
                 if (is_strict_neighbour_edge(g, e)) {
                     todo.push_back(g.get_target(e));
                 }
-            }                    
+            }
         }
         return true;
     }
@@ -579,18 +579,18 @@ namespace smt {
     }
 
     void theory_special_relations::init_model_lo(relation& r, model_generator& m) {
-        expr_ref inj = mk_inj(r, m);        
+        expr_ref inj = mk_inj(r, m);
         func_interp* fi = alloc(func_interp, get_manager(), 2);
         fi->set_else(inj);
-        m.get_model().register_decl(r.decl(), fi);        
+        m.get_model().register_decl(r.decl(), fi);
     }
 
     void theory_special_relations::init_model_plo(relation& r, model_generator& m) {
-        expr_ref inj = mk_inj(r, m);        
+        expr_ref inj = mk_inj(r, m);
         expr_ref cls = mk_class(r, m);
         func_interp* fi = alloc(func_interp, get_manager(), 2);
         fi->set_else(get_manager().mk_and(inj, cls));
-        m.get_model().register_decl(r.decl(), fi);        
+        m.get_model().register_decl(r.decl(), fi);
     }
 
     void theory_special_relations::init_model_po(relation& r, model_generator& mg) {
@@ -623,16 +623,16 @@ namespace smt {
         r.pop(1);
         func_interp* fi = alloc(func_interp, get_manager(), 2);
         fi->set_else(iv);
-        mg.get_model().register_decl(r.decl(), fi);        
+        mg.get_model().register_decl(r.decl(), fi);
     }
-    
+
     bool theory_special_relations::is_neighbour_edge(graph const& g, edge_id edge) const {
-        CTRACE("special_relations_verbose", g.is_enabled(edge), 
+        CTRACE("special_relations_verbose", g.is_enabled(edge),
               tout << edge << ": " << g.get_source(edge) << " " << g.get_target(edge) << " ";
               tout << (g.get_assignment(g.get_source(edge)) - g.get_assignment(g.get_target(edge))) << "\n";);
 
-        return 
-            g.is_enabled(edge) && 
+        return
+            g.is_enabled(edge) &&
             g.get_assignment(g.get_source(edge)) - g.get_assignment(g.get_target(edge)) == s_integer(1);
     }
 
@@ -720,7 +720,7 @@ namespace smt {
 
     void theory_special_relations::init_model(model_generator & m) {
         obj_map<func_decl, relation*>::iterator it = m_relations.begin(), end = m_relations.end();
-        for (; it != end; ++it) {            
+        for (; it != end; ++it) {
             switch (it->m_value->m_property) {
             case sr_lo:
                 init_model_lo(*it->m_value, m);
@@ -745,7 +745,7 @@ namespace smt {
         out << "Theory Special Relations\n";
         display_var2enode(out);
         obj_map<func_decl, relation*>::iterator it = m_relations.begin(), end = m_relations.end();
-        for (; it != end; ++it) {     
+        for (; it != end; ++it) {
             out << mk_pp(it->m_value->decl(), get_manager()) << ":\n";
             it->m_value->m_graph.display(out);
             it->m_value->m_uf.display(out);
