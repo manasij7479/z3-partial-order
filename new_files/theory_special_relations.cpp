@@ -19,7 +19,7 @@ Notes:
 
 #include "theory_special_relations.h"
 #include "smt_context.h"
-
+#include "theory_arith.h"
 #include <fstream>
 
 namespace smt {
@@ -162,26 +162,21 @@ namespace smt {
         return l_true;
     }
 
-    lbool theory_special_relations::final_check_po(relation& r) {
-        lbool res = l_true;
-        std::ofstream out("/tmp/po.log");
-        for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
-            atom& a = *r.m_asserted_atoms[i];
-            out << "A: " << a.v1() << ' ' << a.v2() << ' ' << a.phase() << std::endl;
-            if (!a.phase() && r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
-                // v1 !-> v2
-                // find v1 -> v3 -> v4 -> v2 path
-                out << "NEG: " << a.v1() << ' ' << a.v2() << std::endl;
-                r.m_explanation.reset();
-                unsigned timestamp = r.m_graph.get_timestamp();
-                if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
-                    r.m_explanation.push_back(a.explanation());
-                    set_conflict(r);
-                    res = l_false;
-                }
-            }
+    enode* theory_special_relations::ensure_enode(expr* e) {
+        context& ctx = get_context();
+        if (!ctx.e_internalized(e)) {
+            ctx.internalize(e, false);
         }
-        return res;
+        enode* n = ctx.get_enode(e);
+        ctx.mark_as_relevant(n);
+        return n;
+    }
+
+    literal theory_special_relations::mk_literal(expr* _e) {
+        expr_ref e(_e, get_manager());
+        context& ctx = get_context();
+        ensure_enode(e);
+        return ctx.get_literal(e);
     }
 
     lbool theory_special_relations::final_check_plo(relation& r) {
@@ -336,20 +331,75 @@ namespace smt {
         return res;
     }
 
-  lbool theory_special_relations::propagate_po(atom& a) {
-        lbool res = l_true;
-        // if (a.phase()) {
-        //   res = enable(a);
-        // }
-        relation& r = a.get_relation();
-        if (a.phase()) {
-            r.m_uf.merge(a.v1(), a.v2());
-            res = enable(a);
-        }
-        else if (r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
-            // res = enable(a);
-        }
-        return res;
+    lbool theory_special_relations::propagate_po(atom& a) {
+//        lbool res = l_true;
+//        // if (a.phase()) {
+//        //   res = enable(a);
+//        // }
+//        relation& r = a.get_relation();
+//        if (a.phase()) {
+//            r.m_uf.merge(a.v1(), a.v2());
+//            res = enable(a);
+//        }
+//        else if (r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
+////             res = enable(a);
+//        }
+//        return res;
+//        set_conflict(a.get_relation());
+        // ^ this produces unsat, but we can not use it unless we want to handle boolean logic manually.
+        return l_true;
+    }
+
+    lbool theory_special_relations::final_check_po(relation& r) {
+    //        lbool res = l_true;
+//            std::ofstream out("/tmp/po.log");
+    //        for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
+    //            atom& a = *r.m_asserted_atoms[i];
+    //            out << "A: " << a.v1() << ' ' << a.v2() << ' ' << a.phase() << std::endl;
+    //            if (!a.phase() && r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
+    //                // v1 !-> v2
+    //                // find v1 -> v3 -> v4 -> v2 path
+    //                out << "NEG: " << a.v1() << ' ' << a.v2() << std::endl;
+    //                r.m_explanation.reset();
+    //                unsigned timestamp = r.m_graph.get_timestamp();
+    //                if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
+    //                    r.m_explanation.push_back(a.explanation());
+    //                    set_conflict(r);
+    //                    res = l_false;
+    //                }
+    //            }
+    //        }
+    //        return res;
+            context& ctx = get_context();
+            ast_manager& m = ctx.get_manager();
+            arith_util m_autil(m);
+            auto&& int_sort = m_autil.mk_int();
+
+//            var1 = m.mk_var(7479, int_sort); // produces unknown
+//            var2 = m.mk_var(7480, int_sort); // produces unknown on asert(var1 == var2), assert(!(var1 == var2))
+
+            auto var1 = m_autil.mk_int(5);
+            auto var2 = m_autil.mk_int(6);
+
+            auto e1 = m_autil.mk_eq(var2, var1); // produces sat (6 == 5)
+
+//            auto e2 = m.mk_not(e1);
+
+//            auto l1 = mk_literal(var1); // just creating a literal makes the result unknown
+//            auto l1 = mk_literal(e1);
+//            auto l2 = ~l1;
+//            ctx.mk_th_axiom(get_id(), l1, l2); // produces unknown
+
+            ctx.assert_expr(e1);
+
+//            ctx.assert_expr(e2);
+
+//            out << "CHECK: " << ctx.check() << "\n"; // produces unknown if check is called
+
+
+            // out << "FOO: " << ctx.inconsistent() << "\n"; // always 0, so far
+
+        return l_true;
     }
 
     lbool theory_special_relations::propagate(relation& r) {
