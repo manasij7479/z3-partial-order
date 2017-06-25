@@ -375,22 +375,23 @@ namespace smt {
             arith_util m_autil(m);
             auto&& int_sort = m_autil.mk_int();
 
-//            var1 = m.mk_var(7479, int_sort); // produces unknown
-//            var2 = m.mk_var(7480, int_sort); // produces unknown on asert(var1 == var2), assert(!(var1 == var2))
+            auto var1 = m.mk_var(7479, int_sort); // produces unknown
+            auto var2 = m.mk_var(7480, int_sort); // produces unknown on asert(var1 == var2), assert(!(var1 == var2))
 
-            auto var1 = m_autil.mk_int(5);
-            auto var2 = m_autil.mk_int(6);
+//            auto var1 = m_autil.mk_int(5);
+//            auto var2 = m_autil.mk_int(6);
 
             auto e1 = m_autil.mk_eq(var2, var1); // produces sat (6 == 5)
 
-//            auto e2 = m.mk_not(e1);
+            auto e2 = m.mk_not(e1);
 
-//            auto l1 = mk_literal(var1); // just creating a literal makes the result unknown
-//            auto l1 = mk_literal(e1);
+            auto l1 = mk_literal(e1); // just creating a literal makes the result unknown
+            auto l2 = mk_literal(e2);
 //            auto l2 = ~l1;
-//            ctx.mk_th_axiom(get_id(), l1, l2); // produces unknown
+//            ctx.mark_as_relevant(l1);
+            ctx.mk_th_axiom(get_id(), l1, l2); // produces unknown
 
-            ctx.assert_expr(e1);
+//            ctx.assert_expr(e1);
 
 //            ctx.assert_expr(e2);
 
@@ -399,7 +400,7 @@ namespace smt {
 
 //             out << "FOO: " << ctx.inconsistent() << "\n"; // always 0, so far
 
-        return l_true;
+        return ctx.inconsistent() ? l_false : l_true;
     }
 
     lbool theory_special_relations::propagate(relation& r) {
