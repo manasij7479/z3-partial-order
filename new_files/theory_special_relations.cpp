@@ -397,7 +397,7 @@ namespace smt {
 //            out << "CHECK: " << ctx.check() << "\n"; // produces unknown if check is called
 
 
-            // out << "FOO: " << ctx.inconsistent() << "\n"; // always 0, so far
+//             out << "FOO: " << ctx.inconsistent() << "\n"; // always 0, so far
 
         return l_true;
     }
