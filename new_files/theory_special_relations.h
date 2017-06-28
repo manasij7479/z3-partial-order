@@ -21,6 +21,7 @@ Notes:
 #include "smt_theory.h"
 #include "theory_diff_logic.h"
 #include "union_find.h"
+#include "solver.h"
 
 #ifndef THEORY_SPECIAL_RELATIONS_H_
 #define THEORY_SPECIAL_RELATIONS_H_
@@ -116,6 +117,8 @@ namespace smt {
         obj_map<func_decl, relation*>  m_relations;
         bool_var2atom                  m_bool_var2atom;
 
+        solver* m_nested_solver;
+
         void del_atoms(unsigned old_size);
         lbool final_check(relation& r);
         lbool final_check_po(relation& r);
@@ -172,6 +175,7 @@ namespace smt {
 
         literal mk_literal(expr* _e);
         enode* ensure_enode(expr* e);
+        theory_var mk_var(enode* n);
 
   //BEGIN: ASHU
       void collect_asserted_po_atoms( vector< std::pair<bool_var,bool> >& atoms) const;

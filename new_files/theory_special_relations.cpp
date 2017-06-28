@@ -22,6 +22,10 @@ Notes:
 #include "theory_arith.h"
 #include <fstream>
 
+#include "smt/smt_solver.h"
+#include "solver/solver.h"
+#include "reg_decl_plugins.h"
+
 namespace smt {
 
     void theory_special_relations::relation::push() {
@@ -62,8 +66,12 @@ namespace smt {
 
     theory_special_relations::theory_special_relations(ast_manager& m):
         theory(m.mk_family_id("special_relations")),
-        m_util(m)
-    {}
+        m_util(m) {
+        params_ref params;
+        params.set_bool("model", true);
+//        reg_decl_plugins(m_nested_ast_mgr);
+        m_nested_solver = mk_smt_solver(m, params, symbol("QFLIA"));
+    }
 
     theory_special_relations::~theory_special_relations() {
         reset_eh();
@@ -177,6 +185,18 @@ namespace smt {
         context& ctx = get_context();
         ensure_enode(e);
         return ctx.get_literal(e);
+    }
+
+    theory_var theory_special_relations::mk_var(enode* n) {
+        if (is_attached_to_var(n)) {
+            return n->get_th_var(get_id());
+        }
+        else {
+            theory_var v = theory::mk_var(n);
+            get_context().attach_th_var(n, this, v);
+            get_context().mark_as_relevant(n);
+            return v;
+        }
     }
 
     lbool theory_special_relations::final_check_plo(relation& r) {
@@ -373,34 +393,27 @@ namespace smt {
             context& ctx = get_context();
             ast_manager& m = ctx.get_manager();
             arith_util m_autil(m);
-            auto&& int_sort = m_autil.mk_int();
+            sort * int_sort = m_autil.mk_int();
 
-            auto var1 = m.mk_var(7479, int_sort); // produces unknown
-            auto var2 = m.mk_var(7480, int_sort); // produces unknown on asert(var1 == var2), assert(!(var1 == var2))
+            auto var1 = m_autil.mk_int(6);
+            auto var2 = m_autil.mk_int(5);
 
-//            auto var1 = m_autil.mk_int(5);
-//            auto var2 = m_autil.mk_int(6);
+            func_decl_info dummy(m_autil.get_family_id());
 
-            auto e1 = m_autil.mk_eq(var2, var1); // produces sat (6 == 5)
+            auto f1 = m.mk_func_decl(0, &int_sort, dummy);
+            auto f2 = m.mk_func_decl(0, &int_sort, dummy);
 
-            auto e2 = m.mk_not(e1);
+            auto e2 = m_autil.mk_lt(m.mk_app(f1, unsigned(0), nullptr), m.mk_app(f2, unsigned(0), nullptr));
+            // ^ causes 'unknown'
 
-            auto l1 = mk_literal(e1); // just creating a literal makes the result unknown
-            auto l2 = mk_literal(e2);
-//            auto l2 = ~l1;
-//            ctx.mark_as_relevant(l1);
-            ctx.mk_th_axiom(get_id(), l1, l2); // produces unknown
+            auto e1 = m_autil.mk_eq(var2, var1);
 
-//            ctx.assert_expr(e1);
-
-//            ctx.assert_expr(e2);
-
-//            out << "CHECK: " << ctx.check() << "\n"; // produces unknown if check is called
-
-
-//             out << "FOO: " << ctx.inconsistent() << "\n"; // always 0, so far
-
-        return ctx.inconsistent() ? l_false : l_true;
+        m_nested_solver->assert_expr(e1);
+        m_nested_solver->assert_expr(e2);
+        if (m_nested_solver->check_sat(0, nullptr) == l_false) {
+          set_conflict(r);
+          return l_false;
+        } else return l_true;
     }
 
     lbool theory_special_relations::propagate(relation& r) {
