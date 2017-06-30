@@ -120,6 +120,7 @@ namespace smt {
         bool_var2atom                  m_bool_var2atom;
 
         solver* m_nested_solver;
+        sort* m_int_sort;
 
         void del_atoms(unsigned old_size);
         lbool final_check(relation& r);

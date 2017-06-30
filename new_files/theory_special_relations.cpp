@@ -22,6 +22,8 @@ Notes:
 #include "theory_arith.h"
 #include <fstream>
 
+#include <unordered_map>
+
 #include "smt/smt_solver.h"
 #include "solver/solver.h"
 #include "reg_decl_plugins.h"
@@ -71,6 +73,7 @@ namespace smt {
         params.set_bool("model", true);
 //        reg_decl_plugins(m_nested_ast_mgr);
         m_nested_solver = mk_smt_solver(m, params, symbol("QFLIA"));
+        m_int_sort = m_autil.mk_int();
     }
 
     theory_special_relations::~theory_special_relations() {
@@ -365,9 +368,14 @@ namespace smt {
 ////             res = enable(a);
 //        }
 //        return res;
-//        set_conflict(a.get_relation());
-        // ^ this produces unsat, but we can not use it unless we want to handle boolean logic manually.
         return l_true;
+    }
+
+    void populate_k_vars(int v, int k,  std::unordered_map<int, std::vector<func_decl*>>& map, int& curr_id, ast_manager& m, sort** int_sort) {
+        auto need = map.find(v) == map.end() ? k : k - map[v].size();
+        for (auto i = 0; i < need; ++i) {
+            map[v].push_back(m.mk_func_decl(symbol(curr_id++), 0, int_sort, *int_sort));
+        }
     }
 
     lbool theory_special_relations::final_check_po(relation& r) {
@@ -390,32 +398,109 @@ namespace smt {
     //            }
     //        }
     //        return res;
-            context& ctx = get_context();
-            ast_manager& m = ctx.get_manager();
-            sort* int_sort = m_autil.mk_int();
+        context& ctx = get_context();
+        ast_manager& m = ctx.get_manager();
 
-//        auto var1 = m_autil.mk_int(6);
-//        auto var2 = m_autil.mk_int(5);
+        bool first_iter = true;
+        int k = 4;
+        int curr_id = 100000000; // TODO : How to 'reserve' IDs and check if one is in use?
 
-//        auto e1 = m_autil.mk_eq(var2, var1);
 
-//        m_nested_solver->assert_expr(e1);
+        std::vector<expr*> assumptions(r.m_asserted_atoms.size());
+        std::vector<expr*> conjunctions(r.m_asserted_atoms.size());
+        std::vector<expr*> disjunctions(r.m_asserted_atoms.size());
 
-        func_decl_ref f1(m), f2(m);
-        f1 = m.mk_func_decl(symbol("x"), 0, &int_sort, int_sort);
+        std::unordered_map<int, std::vector<func_decl*>> map;
 
-        f2 = m.mk_func_decl(symbol("y"), 0, &int_sort, int_sort);
+        while (true) {
 
-        auto e2 = m_autil.mk_lt(m.mk_app(f1, unsigned(0), nullptr), m.mk_app(f2, unsigned(0), nullptr));
+            if (first_iter) {
+                for (unsigned i = 0; /*res == l_true &&*/ i < r.m_asserted_atoms.size(); ++i) {
+                    atom& a = *r.m_asserted_atoms[i];
+                    populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
+                    populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
 
-        auto e3 = m_autil.mk_gt(m.mk_app(f1, unsigned(0), nullptr), m.mk_app(f2, unsigned(0), nullptr));
+                    conjunctions[i] = m_autil.mk_le(m.mk_app(map[a.v1()][0], unsigned(0),
+                            nullptr), m.mk_app(map[a.v2()][0], unsigned(0), nullptr));
 
-        m_nested_solver->assert_expr(e2);
-        m_nested_solver->assert_expr(e3);
-        if (m_nested_solver->check_sat(0, nullptr) == l_false) {
-          set_conflict(r);
-          return l_false;
-        } else return l_true;
+                    disjunctions[i] = m_autil.mk_lt(m.mk_app(map[a.v1()][0], unsigned(0),
+                            nullptr), m.mk_app(map[a.v2()][0], unsigned(0), nullptr));
+
+
+                    for (int j = 1; j < k; ++j) {
+                        conjunctions[i] = m.mk_and(conjunctions[i], m_autil.mk_le(m.mk_app(map[a.v1()][j], unsigned(0),
+                                        nullptr), m.mk_app(map[a.v2()][j], unsigned(0), nullptr)));
+                        disjunctions[i] = m.mk_or(disjunctions[i], m_autil.mk_lt(m.mk_app(map[a.v1()][j], unsigned(0),
+                                       nullptr), m.mk_app(map[a.v2()][j], unsigned(0), nullptr)));
+                    }
+
+                    auto bool_sort = m.mk_bool_sort();
+                    auto b = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
+                    if (a.phase()) {
+                      m_nested_solver->assert_expr(m.mk_implies(m.mk_app(b, unsigned(0), nullptr),
+                                                              m.mk_and(conjunctions[i], disjunctions[i])));
+                    } else {
+                      m_nested_solver->assert_expr(m.mk_implies(m.mk_app(b, unsigned(0), nullptr),
+                                                              m.mk_not(m.mk_and(conjunctions[i], disjunctions[i]))));
+                    }
+                    assumptions[i] = m.mk_app(b, unsigned(0), nullptr);
+
+                }
+                first_iter = false;
+            } else {
+                // TODO : Combine with above loop
+                for (unsigned i = 0; /*res == l_true &&*/ i < r.m_asserted_atoms.size(); ++i) {
+                    atom& a = *r.m_asserted_atoms[i];
+                    populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
+                    populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
+
+//                    conjunctions[i] = m_autil.mk_le(m.mk_app(map[a.v1()][0], unsigned(0),
+//                            nullptr), m.mk_app(map[a.v2()][0], unsigned(0), nullptr));
+
+//                    disjunctions[i] = m_autil.mk_lt(m.mk_app(map[a.v1()][0], unsigned(0),
+//                            nullptr), m.mk_app(map[a.v2()][0], unsigned(0), nullptr));
+
+
+//                    for (int j = 1; j < k; ++j) {
+                        conjunctions[i] = m.mk_and(conjunctions[i], m_autil.mk_le(m.mk_app(map[a.v1()][k-1], unsigned(0),
+                                        nullptr), m.mk_app(map[a.v2()][k-1], unsigned(0), nullptr)));
+                        disjunctions[i] = m.mk_or(disjunctions[i], m_autil.mk_lt(m.mk_app(map[a.v1()][k-1], unsigned(0),
+                                       nullptr), m.mk_app(map[a.v2()][k-1], unsigned(0), nullptr)));
+//                    }
+
+                    auto bool_sort = m.mk_bool_sort();
+                    auto b = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
+                    if (a.phase()) {
+                      m_nested_solver->assert_expr(m.mk_implies(m.mk_app(b, unsigned(0), nullptr),
+                                                              m.mk_and(conjunctions[i], disjunctions[i])));
+                    } else {
+                      m_nested_solver->assert_expr(m.mk_implies(m.mk_app(b, unsigned(0), nullptr),
+                                                              m.mk_not(m.mk_and(conjunctions[i], disjunctions[i]))));
+                    }
+                    assumptions[i] = m.mk_app(b, unsigned(0), nullptr);
+
+                }
+            }
+
+            if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
+              // Unsat Core logic goes here
+                expr_ref_vector core(m);
+                m_nested_solver->get_unsat_core(core);
+                if (true || core.size() == 1) {
+                    set_conflict(r);
+                    // TODO : Set 'explanation' in r
+                    return l_false;
+                } else {
+                    k++;
+                    // How to reset old asserts?
+                }
+
+            } else {
+                return l_true;
+            }
+        }
+        UNREACHABLE();
+        return l_true;
     }
 
     lbool theory_special_relations::propagate(relation& r) {

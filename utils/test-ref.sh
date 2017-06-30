@@ -8,7 +8,7 @@ if [ ! -d "tests" ]; then
 fi
 rm -rf /tmp/test /tmp/out
 (for file in tests/*; do ./po-test $file; done) > /tmp/test
-(for file in outs/*; do ../z3.out $file; done) > /tmp/out
+(for file in outs/*; do ../z3.out $file | head -n 1; done) > /tmp/out
 
 pr -m -t /tmp/test /tmp/out
 
