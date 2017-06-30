@@ -66,7 +66,7 @@ namespace smt {
 
     theory_special_relations::theory_special_relations(ast_manager& m):
         theory(m.mk_family_id("special_relations")),
-        m_util(m) {
+        m_util(m), m_autil(m) {
         params_ref params;
         params.set_bool("model", true);
 //        reg_decl_plugins(m_nested_ast_mgr);
@@ -392,24 +392,26 @@ namespace smt {
     //        return res;
             context& ctx = get_context();
             ast_manager& m = ctx.get_manager();
-            arith_util m_autil(m);
-            sort * int_sort = m_autil.mk_int();
+            sort* int_sort = m_autil.mk_int();
 
-            auto var1 = m_autil.mk_int(6);
-            auto var2 = m_autil.mk_int(5);
+//        auto var1 = m_autil.mk_int(6);
+//        auto var2 = m_autil.mk_int(5);
 
-            func_decl_info dummy(m_autil.get_family_id());
+//        auto e1 = m_autil.mk_eq(var2, var1);
 
-            auto f1 = m.mk_func_decl(0, &int_sort, dummy);
-            auto f2 = m.mk_func_decl(0, &int_sort, dummy);
+//        m_nested_solver->assert_expr(e1);
 
-            auto e2 = m_autil.mk_lt(m.mk_app(f1, unsigned(0), nullptr), m.mk_app(f2, unsigned(0), nullptr));
-            // ^ causes 'unknown'
+        func_decl_ref f1(m), f2(m);
+        f1 = m.mk_func_decl(symbol("x"), 0, &int_sort, int_sort);
 
-            auto e1 = m_autil.mk_eq(var2, var1);
+        f2 = m.mk_func_decl(symbol("y"), 0, &int_sort, int_sort);
 
-        m_nested_solver->assert_expr(e1);
+        auto e2 = m_autil.mk_lt(m.mk_app(f1, unsigned(0), nullptr), m.mk_app(f2, unsigned(0), nullptr));
+
+        auto e3 = m_autil.mk_gt(m.mk_app(f1, unsigned(0), nullptr), m.mk_app(f2, unsigned(0), nullptr));
+
         m_nested_solver->assert_expr(e2);
+        m_nested_solver->assert_expr(e3);
         if (m_nested_solver->check_sat(0, nullptr) == l_false) {
           set_conflict(r);
           return l_false;

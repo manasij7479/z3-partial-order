@@ -472,7 +472,7 @@ index 41890dd0..9905e489 100644
      bit_blaster
      cmd_context
 diff --git a/src/smt/diff_logic.h b/src/smt/diff_logic.h
-index f55945ce..d54e4b6e 100644
+index f55945ce..6f395894 100644
 --- a/src/smt/diff_logic.h
 +++ b/src/smt/diff_logic.h
 @@ -296,6 +296,9 @@ public:
@@ -535,6 +535,15 @@ index f55945ce..d54e4b6e 100644
          parents.reset();
          parents.resize(get_num_nodes());
          parents[start] = -1;
+@@ -1045,7 +1080,7 @@ public:
+ 	                visited.insert(next);
+ 	                nodes.push_front(next);
+                 }
+-		    }
++              }
+ 	    }
+     }
+ 
 @@ -1276,6 +1311,15 @@ public:
      // Return true if the path exists, false otherwise.
      template<typename Functor>
@@ -786,7 +795,7 @@ index f12cc5e0..a0f41448 100644
          setup(context & c, smt_params & params);
          void mark_already_configured() { m_already_configured = true; }
 diff --git a/src/smt/smt_solver.cpp b/src/smt/smt_solver.cpp
-index cd912b72..e043cb32 100644
+index cd912b72..aa8f2b55 100644
 --- a/src/smt/smt_solver.cpp
 +++ b/src/smt/smt_solver.cpp
 @@ -27,6 +27,11 @@ Notes:
@@ -801,17 +810,21 @@ index cd912b72..e043cb32 100644
  namespace smt {
  
      class solver : public solver_na2as {
-@@ -141,7 +146,14 @@ namespace smt {
+@@ -141,7 +146,18 @@ namespace smt {
  
          virtual lbool check_sat_core(unsigned num_assumptions, expr * const * assumptions) {
              TRACE("solver_na2as", tout << "smt_solver::check_sat_core: " << num_assumptions << "\n";);
 -            return m_context.check(num_assumptions, assumptions);
 +            //BEGIN: ASHU
 +            lbool res = m_context.check(num_assumptions, assumptions);
-+            asserted_linear_constr_vector->reset();
-+            m_context.collect_asserted_linear_constr(*asserted_linear_constr_vector);
-+            asserted_po_constr_vector->reset();
-+            m_context.collect_asserted_po_constr(*asserted_po_constr_vector);
++            if (asserted_linear_constr_vector) {
++              asserted_linear_constr_vector->reset();
++              m_context.collect_asserted_linear_constr(*asserted_linear_constr_vector);
++            }
++            if (asserted_po_constr_vector) {
++              asserted_po_constr_vector->reset();
++              m_context.collect_asserted_po_constr(*asserted_po_constr_vector);
++            }
 +            return res;
 +            //END: ASHU
          }

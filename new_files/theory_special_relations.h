@@ -112,6 +112,8 @@ namespace smt {
         typedef u_map<atom*>     bool_var2atom;
 
         special_relations_util         m_util;
+        arith_util m_autil;
+
         atoms                          m_atoms;
         unsigned_vector                m_atoms_lim;
         obj_map<func_decl, relation*>  m_relations;
