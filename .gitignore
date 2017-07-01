@@ -3,3 +3,5 @@
 utils/gen-random-po
 z3.out
 z3/
+utils/result
+z3.out.release
