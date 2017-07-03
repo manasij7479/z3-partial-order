@@ -6,6 +6,9 @@
 #include <fstream>
 #include <cassert>
 
+bool do_int = true;
+
+
 class Writer {
 public:
   Writer(std::string outfile, std::string testfile, int vars, int pos, int neg)
@@ -15,14 +18,20 @@ public:
     test << vars << ' ' << pos << ' ' << neg << '\n';
   }
   void writeVar(int x) {
-    out << "(declare-fun v" << x << " () HB)\n";
+    std::string t_name = "HB";
+    if( do_int ) t_name = "Int";
+    out << "(declare-fun v" << x << " () " << t_name << ")\n";
   }
   void writePositveAtom(int a, int b) {
-    out << "(assert (partial-order v" << a << " v" << b << "))\n";
+    std::string ord_name = "partial-order";
+    if( do_int ) ord_name = "<";
+    out << "(assert (" << ord_name << " v" << a << " v" << b << "))\n";
     test << a << ' ' << b << '\n';
   }
   void writeNegativeAtom(int a, int b) {
-    out << "(assert (not (partial-order v" << a << " v" << b << ")))\n";
+    std::string ord_name = "partial-order";
+    if( do_int ) ord_name = "<";
+    out << "(assert (not (" << ord_name << " v" << a << " v" << b << ")))\n";
     test << a << ' ' << b << '\n';
     // FIXME : Need a new syntax for test if positive and negative atoms can be mixed in the test.
   }

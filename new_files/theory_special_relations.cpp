@@ -414,12 +414,16 @@ namespace smt {
 
         bool first_iter = true;
         int k = 1;
-        int curr_id = 1000000; // TODO : How to 'reserve' IDs and check if one is in use?
+        int curr_id = 0;//1000000; // TODO : How to 'reserve' IDs and check if one is in use?
 
 
         std::vector<expr*> assumptions(r.m_asserted_atoms.size());
         std::vector<expr*> conjs(r.m_asserted_atoms.size());
         std::vector<expr*> disjs(r.m_asserted_atoms.size());
+
+        timer m_timer;
+        m_timer.start();
+        double last = 0.0;
 
         std::unordered_map<int, std::vector<expr*>> map;
         std::cerr << "HERE1\n";
@@ -447,6 +451,7 @@ namespace smt {
                     auto comp = m.mk_and(conjs[i], disjs[i]);
                     if (a.phase()) {
                       auto f = m.mk_implies(b, comp);
+                      //std::cerr << mk_pp(f, m) << "\n";
                       m_nested_solver->assert_expr( f );
                     } else {
                       auto f = m.mk_implies( b, m.mk_not(comp) );
@@ -454,7 +459,14 @@ namespace smt {
                     }
                     assumptions[i] = b;
                     assume_atom_map[assumptions[i]->get_id()] = i;
+
+                    if( i % 10 == 0 ) {
+                      double nt = m_timer.get_seconds()*1000.0;
+                      std::cerr << i << ":"<< nt-last << "\n";
+                      last = nt;
+                    }
                 }
+                std::cerr <<  *m_nested_solver;
                 first_iter = false;
             } else {
                 // TODO : Combine with above loop
