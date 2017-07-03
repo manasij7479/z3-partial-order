@@ -1,6 +1,6 @@
 all: gen-random-po po-test
 
-gen-random-po: gen-random-po.cpp
+gen-random-po: gen-targetted.cpp
 	g++ -std=c++11 gen-random-po.cpp -o gen-random-po
 
 po-test: po-test.cpp

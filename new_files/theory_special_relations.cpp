@@ -79,6 +79,7 @@ namespace smt {
     }
 
     theory_special_relations::~theory_special_relations() {
+        dealloc(m_nested_solver);
         reset_eh();
     }
 
@@ -381,6 +382,7 @@ namespace smt {
     }
 
     lbool theory_special_relations::final_check_po(relation& r) {
+//        if (false) { // for performance comparison only, remove later.
 //        lbool res = l_true;
 //        for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
 //            atom& a = *r.m_asserted_atoms[i];
@@ -404,12 +406,14 @@ namespace smt {
 //            }
 //        }
 //        return res;
+//        }
+
         context& ctx = get_context();
         ast_manager& m = ctx.get_manager();
 
         bool first_iter = true;
-        int k = 2;
-        int curr_id = 100000000; // TODO : How to 'reserve' IDs and check if one is in use?
+        int k = 1;
+        int curr_id = 1000000; // TODO : How to 'reserve' IDs and check if one is in use?
 
 
         std::vector<expr*> assumptions(r.m_asserted_atoms.size());
@@ -417,7 +421,7 @@ namespace smt {
         std::vector<expr*> disjunctions(r.m_asserted_atoms.size());
 
         std::unordered_map<int, std::vector<func_decl*>> map;
-
+        std::cerr << "HERE1\n";
         while (true) {
             std::unordered_map<unsigned, unsigned> assume_atom_map;
             if (first_iter) {
@@ -487,7 +491,7 @@ namespace smt {
 
                 }
             }
-
+            std::cerr << "HERE2\n";
             if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
               // Unsat Core logic goes here
                 expr_ref_vector core(m);
