@@ -374,10 +374,11 @@ namespace smt {
         return l_true;
     }
 
-    void populate_k_vars(int v, int k,  std::unordered_map<int, std::vector<func_decl*>>& map, int& curr_id, ast_manager& m, sort** int_sort) {
+    void populate_k_vars(int v, int k,  std::unordered_map<int, std::vector<expr*>>& map, int& curr_id, ast_manager& m, sort** int_sort) {
         auto need = map.find(v) == map.end() ? k : k - map[v].size();
         for (auto i = 0; i < need; ++i) {
-            map[v].push_back(m.mk_func_decl(symbol(curr_id++), 0, int_sort, *int_sort));
+            auto *fd = m.mk_func_decl(symbol(curr_id++), 0, int_sort, *int_sort);
+            map[v].push_back(m.mk_app(fd, unsigned(0),nullptr));
         }
     }
 
@@ -420,7 +421,7 @@ namespace smt {
         std::vector<expr*> conjunctions(r.m_asserted_atoms.size());
         std::vector<expr*> disjunctions(r.m_asserted_atoms.size());
 
-        std::unordered_map<int, std::vector<func_decl*>> map;
+        std::unordered_map<int, std::vector<expr*>> map;
         std::cerr << "HERE1\n";
         while (true) {
             std::unordered_map<unsigned, unsigned> assume_atom_map;
@@ -430,18 +431,14 @@ namespace smt {
                     populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
                     populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
 
-                    conjunctions[i] = m_autil.mk_le(m.mk_app(map[a.v1()][0], unsigned(0),
-                            nullptr), m.mk_app(map[a.v2()][0], unsigned(0), nullptr));
+                    conjunctions[i] = m_autil.mk_le(map[a.v1()][0], map[a.v2()][0]);
 
-                    disjunctions[i] = m_autil.mk_lt(m.mk_app(map[a.v1()][0], unsigned(0),
-                            nullptr), m.mk_app(map[a.v2()][0], unsigned(0), nullptr));
+                    disjunctions[i] = m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]);
 
 
                     for (int j = 1; j < k; ++j) {
-                        conjunctions[i] = m.mk_and(conjunctions[i], m_autil.mk_le(m.mk_app(map[a.v1()][j], unsigned(0),
-                                        nullptr), m.mk_app(map[a.v2()][j], unsigned(0), nullptr)));
-                        disjunctions[i] = m.mk_or(disjunctions[i], m_autil.mk_lt(m.mk_app(map[a.v1()][j], unsigned(0),
-                                       nullptr), m.mk_app(map[a.v2()][j], unsigned(0), nullptr)));
+                        conjunctions[i] = m.mk_and(conjunctions[i], m_autil.mk_le(map[a.v1()][j], map[a.v2()][j]));
+                        disjunctions[i] = m.mk_or(disjunctions[i], m_autil.mk_lt(map[a.v1()][j], map[a.v2()][j]));
                     }
 
                     auto bool_sort = m.mk_bool_sort();
@@ -464,19 +461,8 @@ namespace smt {
                     populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
                     populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
 
-//                    conjunctions[i] = m_autil.mk_le(m.mk_app(map[a.v1()][0], unsigned(0),
-//                            nullptr), m.mk_app(map[a.v2()][0], unsigned(0), nullptr));
-
-//                    disjunctions[i] = m_autil.mk_lt(m.mk_app(map[a.v1()][0], unsigned(0),
-//                            nullptr), m.mk_app(map[a.v2()][0], unsigned(0), nullptr));
-
-
-//                    for (int j = 1; j < k; ++j) {
-                        conjunctions[i] = m.mk_and(conjunctions[i], m_autil.mk_le(m.mk_app(map[a.v1()][k-1], unsigned(0),
-                                        nullptr), m.mk_app(map[a.v2()][k-1], unsigned(0), nullptr)));
-                        disjunctions[i] = m.mk_or(disjunctions[i], m_autil.mk_lt(m.mk_app(map[a.v1()][k-1], unsigned(0),
-                                       nullptr), m.mk_app(map[a.v2()][k-1], unsigned(0), nullptr)));
-//                    }
+                    conjunctions[i] = m.mk_and(conjunctions[i], m_autil.mk_le(map[a.v1()][k-1], map[a.v2()][k-1]));
+                    disjunctions[i] = m.mk_or(disjunctions[i], m_autil.mk_lt(map[a.v1()][k-1], map[a.v2()][k-1]));
 
                     auto bool_sort = m.mk_bool_sort();
                     auto b = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
