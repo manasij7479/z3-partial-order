@@ -79,7 +79,6 @@ namespace smt {
     }
 
     theory_special_relations::~theory_special_relations() {
-        dealloc(m_nested_solver);
         reset_eh();
         dealloc(m_nested_solver);
     }
