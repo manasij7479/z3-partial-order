@@ -1,6 +1,6 @@
 all : release
 
-.PHONY :  debug release clean patch
+.PHONY :  debug release clean patch test
 
 debug : z3/buildd/libz3.so
 release : z3/buildr/libz3.so
@@ -44,3 +44,6 @@ clean :
 
 patch :
 	cd z3; git diff > ../po.patch
+
+test : debug
+	cd utils; rm -rf tests outs; ./test-ref.sh
