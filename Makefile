@@ -1,4 +1,4 @@
-all : debug release
+all : debug
 
 .PHONY :  debug release clean patch
 

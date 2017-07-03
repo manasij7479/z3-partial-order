@@ -80,6 +80,7 @@ namespace smt {
 
     theory_special_relations::~theory_special_relations() {
         reset_eh();
+        dealloc(m_nested_solver);
     }
 
     theory * theory_special_relations::mk_fresh(context * new_ctx) {
@@ -487,6 +488,7 @@ namespace smt {
 
                 }
             }
+            // std::cerr << "this is here!\n";
 
             if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
               // Unsat Core logic goes here
