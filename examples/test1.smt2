@@ -9,5 +9,6 @@
 (assert (partial-order v1 v2))
 (assert (partial-order v2 v3))
 (assert (not (partial-order v1 v3)))
+;; (assert (= 6 5))
 ;; (assert (!(partial-order v3 v2)))
 (check-sat)

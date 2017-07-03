@@ -81,6 +81,7 @@ namespace smt {
     theory_special_relations::~theory_special_relations() {
         dealloc(m_nested_solver);
         reset_eh();
+        dealloc(m_nested_solver);
     }
 
     theory * theory_special_relations::mk_fresh(context * new_ctx) {
