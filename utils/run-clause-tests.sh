@@ -4,8 +4,9 @@
 make
 make -C ../ release
 mkdir -p tests
+rm tests/*
+cp $1 tests/
 cd tests
-rm *
 touch result
 ulimit -t 60
 while read p; do
@@ -20,4 +21,4 @@ while read p; do
   ../gen-targetted-clauses $p 1
   t=`(time ../../z3.out.release $filename) 2>&1 >/dev/null | grep 'real' | awk '{print $2}'`
   echo "IDL: " $t $filename >> result
-done < ../$1
+done < `basename $1`
