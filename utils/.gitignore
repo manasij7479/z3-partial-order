@@ -1,3 +1,5 @@
 outs
 tests
 po-test
+gen-targetted-asserts
+gen-targetted-clauses

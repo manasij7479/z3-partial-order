@@ -18,12 +18,17 @@ while read p; do
 
   # echo $p
   echo $filename
-  ../gen-targetted-clauses $p
+  ../gen-targetted-clauses $p "po"
   t=`(time ../../z3.out.release $filename) 2>&1 >/dev/null | grep 'real' | awk '{print $2}'`
   echo "PO: " $t $filename >> result
   cp $filename po-$filename
 
-  ../gen-targetted-clauses $p 1
+  ../gen-targetted-clauses $p "lo"
+  t=`(time ../../z3.out.release $filename) 2>&1 >/dev/null | grep 'real' | awk '{print $2}'`
+  echo "LO: " $t $filename >> result
+  cp $filename lo-$filename
+
+  ../gen-targetted-clauses $p "idl"
   t=`(time ../../z3.out.release $filename) 2>&1 >/dev/null | grep 'real' | awk '{print $2}'`
   echo "IDL: " $t $filename >> result
 done < `basename $1`
