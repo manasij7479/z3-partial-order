@@ -4,7 +4,7 @@
 make
 make -C ../ release
 mkdir -p tests
-rm tests/*
+rm -rf tests/*
 cp $1 tests/
 cd tests
 touch result
