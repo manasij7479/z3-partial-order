@@ -13,10 +13,12 @@ public:
   Writer(std::string outfile, int vars, int do_int_)
     : out(outfile), num_vars(vars), do_int(do_int_) {
     assert(out.good() && test.good());
-    if (do_int) {
+    if (do_int == 0) {
       out << "(set-logic QF_IDL)\n";
     }
-    out << "(declare-sort HB)\n";
+    if( do_int == 1 || do_int == 2 ) {
+      out << "(declare-sort HB)\n";
+    }
     // test << vars << ' ' << pos << ' ' << neg << '\n';
   }
   void writeVar(int x) {
@@ -38,9 +40,9 @@ public:
   }
 
   inline std::string get_ord_name() {
-    if( do_int )
-      return "<";
-    return "partial-order";
+    if( do_int == 0 ) return "<";
+    if( do_int == 1 ) return "partial-order";
+    if( do_int == 2 ) return "linear-order";
   }
 
   void writeClause( std::vector< std::tuple<int,int,bool> > vec ) {
@@ -93,7 +95,7 @@ private:
 };
 
 int main(int argc, char **argv) {
-  if (argc < 6) {
+  if (argc < 7) {
   	std::cerr << "./gen-targetted num_vars num_clauses neg_prob clause_size outfile do_int\n";
   	return 1; 
   }
@@ -102,7 +104,20 @@ int main(int argc, char **argv) {
   int neg_prob = std::stoi(argv[3]);
   int clause_size = std::stoi(argv[4]);
   std::string outfile = argv[5];
-  int do_int = (argc == 7) ? 1 : 0; 
+  std::string mode = argv[6];
+  int do_int = 0;
+  if( mode == "idl" ) {
+    do_int = 0;
+  }else if( mode == "po" ) {
+    do_int = 1;
+  }else if( mode == "lo" ) {
+    do_int = 2;
+  }else{
+    std::cerr << "wrong options!!\n";
+    return 1;
+  }
+
+  // int do_int = argv[5])(argc == 7) ? 1 : 0; 
 
   Writer writer(outfile, num_vars, do_int);
 
