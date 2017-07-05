@@ -8,19 +8,14 @@
 #include <vector>
 #include <tuple>
 
-bool do_int = false;
-
-inline std::string get_ord_name() {
-  if( do_int )
-    return "<";
-  return "partial-order";
-}
-
 class Writer {
 public:
-  Writer(std::string outfile, int vars)
-    : out(outfile), num_vars(vars) {
+  Writer(std::string outfile, int vars, int do_int_)
+    : out(outfile), num_vars(vars), do_int(do_int_) {
     assert(out.good() && test.good());
+    if (do_int) {
+      out << "(set-logic QF_IDL)\n";
+    }
     out << "(declare-sort HB)\n";
     // test << vars << ' ' << pos << ' ' << neg << '\n';
   }
@@ -40,6 +35,12 @@ public:
     writePositveAtom(a,b);
     out <<")";
     // test << a << ' ' << b << '\n';
+  }
+
+  inline std::string get_ord_name() {
+    if( do_int )
+      return "<";
+    return "partial-order";
   }
 
   void writeClause( std::vector< std::tuple<int,int,bool> > vec ) {
@@ -88,11 +89,12 @@ private:
   std::ofstream out;
   std::ofstream test;
   int num_vars;
+  int do_int;
 };
 
 int main(int argc, char **argv) {
   if (argc < 6) {
-  	std::cerr << "./gen-targetted num_vars num_clauses neg_prob clause_size outfile\n";
+  	std::cerr << "./gen-targetted num_vars num_clauses neg_prob clause_size outfile do_int\n";
   	return 1; 
   }
   int num_vars = std::stoi(argv[1]);
@@ -100,8 +102,9 @@ int main(int argc, char **argv) {
   int neg_prob = std::stoi(argv[3]);
   int clause_size = std::stoi(argv[4]);
   std::string outfile = argv[5];
+  int do_int = (argc == 7) ? 1 : 0; 
 
-  Writer writer(outfile, num_vars);
+  Writer writer(outfile, num_vars, do_int);
 
   // out << "(declare-sort HB)\n";
   for (int i = 0; i < num_vars; ++i) {
