@@ -11,6 +11,11 @@ touch result
 ulimit -t 60
 while read p; do
   filename=`echo $p | awk '{print $5}'`
+
+  if [[ "${p:0:1}" == "#" ]]; then
+    continue
+  fi
+
   # echo $p
   echo $filename
   ../gen-targetted-clauses $p
