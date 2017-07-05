@@ -384,29 +384,29 @@ namespace smt {
 
     lbool theory_special_relations::final_check_po(relation& r) {
 //        if (false) { // for performance comparison only, remove later.
-//        lbool res = l_true;
-//        for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
-//            atom& a = *r.m_asserted_atoms[i];
-//            if (a.phase()) {
-//                r.m_uf.merge(a.v1(), a.v2());
-//                res = enable(a);
-//            }
-//        }
-//        for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
-//            atom& a = *r.m_asserted_atoms[i];
-//            if (!a.phase() && r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
-//                // v1 !-> v2
-//                // find v1 -> v3 -> v4 -> v2 path
-//                r.m_explanation.reset();
-//                unsigned timestamp = r.m_graph.get_timestamp();
-//                if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
-//                    r.m_explanation.push_back(a.explanation());
-//                    set_conflict(r);
-//                    res = l_false;
-//                }
-//            }
-//        }
-//        return res;
+        lbool res = l_true;
+        for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
+            atom& a = *r.m_asserted_atoms[i];
+            if (a.phase()) {
+                r.m_uf.merge(a.v1(), a.v2());
+                res = enable(a);
+            }
+        }
+        for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
+            atom& a = *r.m_asserted_atoms[i];
+            if (!a.phase() && r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
+                // v1 !-> v2
+                // find v1 -> v3 -> v4 -> v2 path
+                r.m_explanation.reset();
+                unsigned timestamp = r.m_graph.get_timestamp();
+                if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
+                    r.m_explanation.push_back(a.explanation());
+                    set_conflict(r);
+                    res = l_false;
+                }
+            }
+        }
+        return res;
 //        }
 
         context& ctx = get_context();
@@ -466,7 +466,6 @@ namespace smt {
                       last = nt;
                     }
                 }
-                std::cerr <<  *m_nested_solver;
                 first_iter = false;
             } else {
                 // TODO : Combine with above loop
