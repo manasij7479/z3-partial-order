@@ -105,6 +105,7 @@ namespace smt {
         ctx.set_var_theory(v, get_id());
         atom* a = alloc(atom, v, *r, v0, v1);
         m_atoms.push_back(a);
+        //std::cerr << "INTER : " << a->v1() << ' ' << a->v2() << ' ' << gate_ctx << "\n";
         m_bool_var2atom.insert(v, a);
         return true;
     }
@@ -371,6 +372,7 @@ namespace smt {
 ////             res = enable(a);
 //        }
 //        return res;
+        //std::cerr << "PROP : " << a.v1() << ' ' << a.v2() << "\n";
         return l_true;
     }
 
@@ -383,6 +385,7 @@ namespace smt {
     }
 
     lbool theory_special_relations::final_check_po(relation& r) {
+        //std::cerr << "FINAL\n";
 //        if (false) { // for performance comparison only, remove later.
         lbool res = l_true;
         for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
@@ -426,7 +429,7 @@ namespace smt {
         double last = 0.0;
 
         std::unordered_map<int, std::vector<expr*>> map;
-        std::cerr << "HERE1\n";
+        //std::cerr << "HERE1\n";
         while (true) {
             std::unordered_map<unsigned, unsigned> assume_atom_map;
             if (first_iter) {
@@ -451,7 +454,7 @@ namespace smt {
                     auto comp = m.mk_and(conjs[i], disjs[i]);
                     if (a.phase()) {
                       auto f = m.mk_implies(b, comp);
-                      //std::cerr << mk_pp(f, m) << "\n";
+                      ////std::cerr << mk_pp(f, m) << "\n";
                       m_nested_solver->assert_expr( f );
                     } else {
                       auto f = m.mk_implies( b, m.mk_not(comp) );
@@ -462,7 +465,7 @@ namespace smt {
 
                     if( i % 10 == 0 ) {
                       double nt = m_timer.get_seconds()*1000.0;
-                      std::cerr << i << ":"<< nt-last << "\n";
+                      //std::cerr << i << ":"<< nt-last << "\n";
                       last = nt;
                     }
                 }
@@ -490,7 +493,7 @@ namespace smt {
 
                 }
             }
-            std::cerr << "HERE2\n";
+            //std::cerr << "HERE2\n";
             if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
               // Unsat Core logic goes here
                 expr_ref_vector core(m);
@@ -557,6 +560,7 @@ namespace smt {
         VERIFY(m_bool_var2atom.find(v, a));
         a->set_phase(is_true);
         a->get_relation().m_asserted_atoms.push_back(a);
+        //std::cerr << "ASSIGN: " << a->v1() << ' ' << a->v2() << "\n";
     }
 
     void theory_special_relations::push_scope_eh() {
@@ -565,6 +569,7 @@ namespace smt {
             it->m_value->push();
         }
         m_atoms_lim.push_back(m_atoms.size());
+        //std::cerr << "PUSH\n";
     }
 
     void theory_special_relations::pop_scope_eh(unsigned num_scopes) {
@@ -574,6 +579,7 @@ namespace smt {
         }
         unsigned new_lvl = m_atoms_lim.size() - num_scopes;
         del_atoms(m_atoms_lim[new_lvl]);
+        //std::cerr << "POP "<< num_scopes<<"\n";
     }
 
     void theory_special_relations::del_atoms(unsigned old_size) {

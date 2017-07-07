@@ -23,7 +23,7 @@ public:
   }
   void writeVar(int x) {
     std::string t_name = "HB";
-    if( do_int ) t_name = "Int";
+    if( do_int == 0 ) t_name = "Int";
     out << "(declare-fun v" << x << " () " << t_name << ")\n";
   }
 
@@ -43,6 +43,7 @@ public:
     if( do_int == 0 ) return "<";
     if( do_int == 1 ) return "partial-order";
     if( do_int == 2 ) return "linear-order";
+    else assert(false);
   }
 
   void writeClause( std::vector< std::tuple<int,int,bool> > vec ) {
@@ -136,11 +137,11 @@ int main(int argc, char **argv) {
 
   for(int i = 0; i < num_clauses; ++i ) {
     for( int j =0; j < clause_size; j++ ) {
+      isPos = (std::rand() % 100) >= neg_prob;
       do{
         a = std::rand() % num_vars;
         b = std::rand() % num_vars;
-        isPos = (std::rand() % 100) < neg_prob;
-      }while( a != b);
+      } while( a == b);
       if (b < a) std::swap(a, b);
       vec.push_back( std::make_tuple(a,b,isPos) );
     }
