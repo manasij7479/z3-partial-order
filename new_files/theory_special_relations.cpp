@@ -28,7 +28,7 @@ Notes:
 #include "solver/solver.h"
 #include "reg_decl_plugins.h"
 
-static constexpr bool KVEC = false;
+static constexpr bool KVEC = true;
 
 namespace smt {
 
