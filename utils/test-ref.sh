@@ -1,7 +1,7 @@
 #!/bin/bash
 
 make
-make -C ..
+make -C ../ debug
 
 if [ ! -d "tests" ]; then
   python generate-many.py 10 100 90 30

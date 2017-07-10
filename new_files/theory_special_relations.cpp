@@ -28,6 +28,8 @@ Notes:
 #include "solver/solver.h"
 #include "reg_decl_plugins.h"
 
+static constexpr bool KVEC = false;
+
 namespace smt {
 
     void theory_special_relations::relation::push() {
@@ -35,7 +37,9 @@ namespace smt {
         scope& s = m_scopes.back();
         s.m_asserted_atoms_lim = m_asserted_atoms.size();
         s.m_asserted_qhead_old = m_asserted_qhead;
-        m_graph.push();
+        if (!KVEC) {
+          m_graph.push();
+        }
         m_ufctx.get_trail_stack().push_scope();
     }
 
@@ -45,7 +49,9 @@ namespace smt {
         m_asserted_atoms.shrink(s.m_asserted_atoms_lim);
         m_asserted_qhead = s.m_asserted_qhead_old;
         m_scopes.shrink(new_lvl);
-        m_graph.pop(num_scopes);
+        if (!KVEC) {
+          m_graph.pop(num_scopes);
+        }
         m_ufctx.get_trail_stack().pop_scope(num_scopes);
     }
 
@@ -386,43 +392,42 @@ namespace smt {
 
     lbool theory_special_relations::final_check_po(relation& r) {
         //std::cerr << "FINAL\n";
-//        if (false) { // for performance comparison only, remove later.
-        lbool res = l_true;
-        for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
-            atom& a = *r.m_asserted_atoms[i];
-            if (a.phase()) {
-                r.m_uf.merge(a.v1(), a.v2());
-                res = enable(a);
-            }
-        }
-        for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
-            atom& a = *r.m_asserted_atoms[i];
-            if (!a.phase() && r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
-                // v1 !-> v2
-                // find v1 -> v3 -> v4 -> v2 path
-                r.m_explanation.reset();
-                unsigned timestamp = r.m_graph.get_timestamp();
-                if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
-                    r.m_explanation.push_back(a.explanation());
-                    set_conflict(r);
-                    res = l_false;
+        if (!KVEC) {
+            lbool res = l_true;
+            for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
+                atom& a = *r.m_asserted_atoms[i];
+                if (a.phase()) {
+                    r.m_uf.merge(a.v1(), a.v2());
+                    res = enable(a);
                 }
             }
+            for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
+                atom& a = *r.m_asserted_atoms[i];
+                if (!a.phase() && r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
+                    // v1 !-> v2
+                    // find v1 -> v3 -> v4 -> v2 path
+                    r.m_explanation.reset();
+                    unsigned timestamp = r.m_graph.get_timestamp();
+                    if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
+                        r.m_explanation.push_back(a.explanation());
+                        set_conflict(r);
+                        res = l_false;
+                    }
+                }
+            }
+            return res;
         }
-        return res;
-//        }
-
         context& ctx = get_context();
         ast_manager& m = ctx.get_manager();
 
-        bool first_iter = true;
         int k = 1;
         int curr_id = 0;//1000000; // TODO : How to 'reserve' IDs and check if one is in use?
 
 
-        std::vector<expr*> assumptions(r.m_asserted_atoms.size());
-        std::vector<expr*> conjs(r.m_asserted_atoms.size());
-        std::vector<expr*> disjs(r.m_asserted_atoms.size());
+        std::vector<expr*> assumptions/*(r.m_asserted_atoms.size())*/;
+//        std::vector<expr*> conjs(r.m_asserted_atoms.size());
+//        std::vector<expr*> disjs(r.m_asserted_atoms.size());
+        std::vector<expr*> literals;
 
         timer m_timer;
         m_timer.start();
@@ -432,86 +437,89 @@ namespace smt {
         //std::cerr << "HERE1\n";
         while (true) {
             std::unordered_map<unsigned, unsigned> assume_atom_map;
-            if (first_iter) {
-                for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
-                    atom& a = *r.m_asserted_atoms[i];
-                    populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
-                    populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
+//            if (first_iter) {
+            for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
+                atom& a = *r.m_asserted_atoms[i];
+                if (!a.phase())
+                    continue;
+                populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
+                populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
 
-                    conjs[i] = m_autil.mk_le(map[a.v1()][0], map[a.v2()][0]);
+//                    conjs[i] = m_autil.mk_le(map[a.v1()][0], map[a.v2()][0]);
 
-                    disjs[i] = m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]);
+//                    disjs[i] = m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]);
 
+                literals.push_back(m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]));
 
-                    for (int j = 1; j < k; ++j) {
-                        conjs[i] = m.mk_and(conjs[i], m_autil.mk_le(map[a.v1()][j], map[a.v2()][j]));
-                        disjs[i] = m.mk_or(disjs[i], m_autil.mk_lt(map[a.v1()][j], map[a.v2()][j]));
-                    }
+//                    for (int j = 1; j < k; ++j) {
+//                        conjs[i] = m.mk_and(conjs[i], m_autil.mk_le(map[a.v1()][j], map[a.v2()][j]));
+//                        disjs[i] = m.mk_or(disjs[i], m_autil.mk_lt(map[a.v1()][j], map[a.v2()][j]));
+//                    }
 
-                    auto bool_sort = m.mk_bool_sort();
-                    auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
-                    auto b = m.mk_app(b_func, unsigned(0), nullptr);
-                    auto comp = m.mk_and(conjs[i], disjs[i]);
-                    if (a.phase()) {
-                      auto f = m.mk_implies(b, comp);
-                      ////std::cerr << mk_pp(f, m) << "\n";
-                      m_nested_solver->assert_expr( f );
-                    } else {
-                      auto f = m.mk_implies( b, m.mk_not(comp) );
-                      m_nested_solver->assert_expr(f);
-                    }
-                    assumptions[i] = b;
-                    assume_atom_map[assumptions[i]->get_id()] = i;
+                auto bool_sort = m.mk_bool_sort();
+                auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
+                auto b = m.mk_app(b_func, unsigned(0), nullptr);
+                auto comp = literals.back();
+//                if (a.phase()) {
+                  auto f = m.mk_implies(b, comp);
+                  ////std::cerr << mk_pp(f, m) << "\n";
+                  m_nested_solver->assert_expr( f );
 
-                    if( i % 10 == 0 ) {
-                      double nt = m_timer.get_seconds()*1000.0;
-                      //std::cerr << i << ":"<< nt-last << "\n";
-                      last = nt;
-                    }
-                }
-                first_iter = false;
-            } else {
-                // TODO : Combine with above loop
-                for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
-                    atom& a = *r.m_asserted_atoms[i];
-                    populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
-                    populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
+                assumptions.push_back(b);
+//                    assume_atom_map[assumptions[i]->get_id()] = i;
 
-                    conjs[i] = m.mk_and(conjs[i], m_autil.mk_le(map[a.v1()][k-1], map[a.v2()][k-1]));
-                    disjs[i] = m.mk_or(disjs[i], m_autil.mk_lt(map[a.v1()][k-1], map[a.v2()][k-1]));
-
-                    auto bool_sort = m.mk_bool_sort();
-                    auto b = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
-                    if (a.phase()) {
-                      m_nested_solver->assert_expr(m.mk_implies(m.mk_app(b, unsigned(0), nullptr),
-                                                              m.mk_and(conjs[i], disjs[i])));
-                    } else {
-                      m_nested_solver->assert_expr(m.mk_implies(m.mk_app(b, unsigned(0), nullptr),
-                                                              m.mk_not(m.mk_and(conjs[i], disjs[i]))));
-                    }
-                    assumptions[i] = m.mk_app(b, unsigned(0), nullptr);
-
+                if( i % 10 == 0 ) {
+                  double nt = m_timer.get_seconds()*1000.0;
+                  //std::cerr << i << ":"<< nt-last << "\n";
+                  last = nt;
                 }
             }
-            //std::cerr << "HERE2\n";
-            if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
-              // Unsat Core logic goes here
-                expr_ref_vector core(m);
-                m_nested_solver->get_unsat_core(core);
-                if (true || core.size() <= 1) { // TODO: Check if core has more than one cycle.
+            for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
+                atom& a = *r.m_asserted_atoms[i];
+                if (a.phase())
+                    continue;
+//                m_nested_solver->push();
+                populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
+                populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
+
+//                    conjs[i] = m_autil.mk_le(map[a.v1()][0], map[a.v2()][0]);
+
+//                    disjs[i] = m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]);
+
+                literals.push_back(m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]));
+
+//                    for (int j = 1; j < k; ++j) {
+//                        conjs[i] = m.mk_and(conjs[i], m_autil.mk_le(map[a.v1()][j], map[a.v2()][j]));
+//                        disjs[i] = m.mk_or(disjs[i], m_autil.mk_lt(map[a.v1()][j], map[a.v2()][j]));
+//                    }
+
+                auto bool_sort = m.mk_bool_sort();
+                auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
+                auto b = m.mk_app(b_func, unsigned(0), nullptr);
+                auto comp = literals.back();
+
+                auto f = m.mk_implies( b, m.mk_not(comp) );
+                m_nested_solver->assert_expr(f);
+
+                assumptions.push_back(b);
+//                    assume_atom_map[assumptions[i]->get_id()] = i;
+                if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
                     set_conflict(r);
-                    // TODO : Set 'explanation' in r
-                    for (expr* e : core) {
-                        atom& a = *r.m_asserted_atoms[assume_atom_map[e->get_id()]];
-
-
-                    }
                     return l_false;
-                } else {
-                    k++;
-                    // How to reset old asserts?
-                }
 
+                }
+                assumptions.pop_back();
+
+                if( i % 10 == 0 ) {
+                  double nt = m_timer.get_seconds()*1000.0;
+                  //std::cerr << i << ":"<< nt-last << "\n";
+                  last = nt;
+                }
+//                m_nested_solver->pop(1);
+            }
+            if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
+                set_conflict(r);
+                return l_false;
             } else {
                 return l_true;
             }
