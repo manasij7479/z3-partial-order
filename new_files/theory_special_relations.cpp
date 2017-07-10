@@ -424,105 +424,71 @@ namespace smt {
         int curr_id = 0;//1000000; // TODO : How to 'reserve' IDs and check if one is in use?
 
 
-        std::vector<expr*> assumptions/*(r.m_asserted_atoms.size())*/;
-//        std::vector<expr*> conjs(r.m_asserted_atoms.size());
-//        std::vector<expr*> disjs(r.m_asserted_atoms.size());
+        std::vector<expr*> assumptions;
         std::vector<expr*> literals;
 
         timer m_timer;
         m_timer.start();
-        double last = 0.0;
+//        double last = 0.0;
 
         std::unordered_map<int, std::vector<expr*>> map;
         //std::cerr << "HERE1\n";
-        while (true) {
-            std::unordered_map<unsigned, unsigned> assume_atom_map;
-//            if (first_iter) {
-            for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
-                atom& a = *r.m_asserted_atoms[i];
-                if (!a.phase())
-                    continue;
-                populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
-                populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
 
-//                    conjs[i] = m_autil.mk_le(map[a.v1()][0], map[a.v2()][0]);
+        for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
+            atom& a = *r.m_asserted_atoms[i];
+            if (!a.phase())
+                continue;
+            populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
+            populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
 
-//                    disjs[i] = m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]);
+            literals.push_back(m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]));
+            auto bool_sort = m.mk_bool_sort();
+            auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
+            auto b = m.mk_app(b_func, unsigned(0), nullptr);
+            auto f = m.mk_implies(b, literals.back());
+            m_nested_solver->assert_expr( f );
+            assumptions.push_back(b);
+//                if( i % 10 == 0 ) {
+//                  double nt = m_timer.get_seconds()*1000.0;
+//                  std::cerr << i << ":"<< nt-last << "\n";
+//                  last = nt;
+//                }
+        }
+        for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
+            atom& a = *r.m_asserted_atoms[i];
+            if (a.phase())
+                continue;
+            populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
+            populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
 
-                literals.push_back(m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]));
+            literals.push_back(m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]));
 
-//                    for (int j = 1; j < k; ++j) {
-//                        conjs[i] = m.mk_and(conjs[i], m_autil.mk_le(map[a.v1()][j], map[a.v2()][j]));
-//                        disjs[i] = m.mk_or(disjs[i], m_autil.mk_lt(map[a.v1()][j], map[a.v2()][j]));
-//                    }
+            auto bool_sort = m.mk_bool_sort();
+            auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
+            auto b = m.mk_app(b_func, unsigned(0), nullptr);
 
-                auto bool_sort = m.mk_bool_sort();
-                auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
-                auto b = m.mk_app(b_func, unsigned(0), nullptr);
-                auto comp = literals.back();
-//                if (a.phase()) {
-                  auto f = m.mk_implies(b, comp);
-                  ////std::cerr << mk_pp(f, m) << "\n";
-                  m_nested_solver->assert_expr( f );
+            auto f = m.mk_implies( b, m.mk_not(literals.back()) );
+            m_nested_solver->assert_expr(f);
 
-                assumptions.push_back(b);
-//                    assume_atom_map[assumptions[i]->get_id()] = i;
-
-                if( i % 10 == 0 ) {
-                  double nt = m_timer.get_seconds()*1000.0;
-                  //std::cerr << i << ":"<< nt-last << "\n";
-                  last = nt;
-                }
-            }
-            for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
-                atom& a = *r.m_asserted_atoms[i];
-                if (a.phase())
-                    continue;
-//                m_nested_solver->push();
-                populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
-                populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
-
-//                    conjs[i] = m_autil.mk_le(map[a.v1()][0], map[a.v2()][0]);
-
-//                    disjs[i] = m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]);
-
-                literals.push_back(m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]));
-
-//                    for (int j = 1; j < k; ++j) {
-//                        conjs[i] = m.mk_and(conjs[i], m_autil.mk_le(map[a.v1()][j], map[a.v2()][j]));
-//                        disjs[i] = m.mk_or(disjs[i], m_autil.mk_lt(map[a.v1()][j], map[a.v2()][j]));
-//                    }
-
-                auto bool_sort = m.mk_bool_sort();
-                auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
-                auto b = m.mk_app(b_func, unsigned(0), nullptr);
-                auto comp = literals.back();
-
-                auto f = m.mk_implies( b, m.mk_not(comp) );
-                m_nested_solver->assert_expr(f);
-
-                assumptions.push_back(b);
-//                    assume_atom_map[assumptions[i]->get_id()] = i;
-                if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
-                    set_conflict(r);
-                    return l_false;
-
-                }
-                assumptions.pop_back();
-
-                if( i % 10 == 0 ) {
-                  double nt = m_timer.get_seconds()*1000.0;
-                  //std::cerr << i << ":"<< nt-last << "\n";
-                  last = nt;
-                }
-//                m_nested_solver->pop(1);
-            }
+            assumptions.push_back(b);
             if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
                 set_conflict(r);
                 return l_false;
-            } else {
-                return l_true;
+
             }
+            assumptions.pop_back();
+
+//                if( i % 10 == 0 ) {
+//                  double nt = m_timer.get_seconds()*1000.0;
+//                  std::cerr << i << ":"<< nt-last << "\n";
+//                  last = nt;
+//                }
+        }
+        if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
+            set_conflict(r);
+            return l_false;
+        } else {
+            return l_true;
         }
         UNREACHABLE();
         return l_true;
