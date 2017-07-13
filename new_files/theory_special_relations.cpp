@@ -94,7 +94,7 @@ namespace smt {
     }
 
     void populate_k_vars(int v, int k,  std::unordered_map<int, std::vector<expr*>>& map, int& curr_id, ast_manager& m, sort** int_sort) {
-        auto need = map.find(v) == map.end() ? k : k - map[v].size();
+        int need = map.find(v) == map.end() ? k : k - map[v].size();
         for (auto i = 0; i < need; ++i) {
             auto *fd = m.mk_func_decl(symbol(curr_id++), 0, int_sort, *int_sort);
             map[v].push_back(m.mk_app(fd, unsigned(0),nullptr));
@@ -921,6 +921,7 @@ namespace smt {
             int_vector const& edges = g.get_out_edges(v);
             unsigned l = lo[v];
             unsigned h = hi[v];
+            (void)h;
             nodes.pop_back();
             for (unsigned i = 0; i < edges.size(); ++i) {
                 SASSERT(l <= h);

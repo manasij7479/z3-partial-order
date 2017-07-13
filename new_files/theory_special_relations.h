@@ -19,7 +19,14 @@ Notes:
 
 #include "special_relations_decl_plugin.h"
 #include "smt_theory.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+
 #include "theory_diff_logic.h"
+
+#pragma GCC diagnostic pop
+
 #include "union_find.h"
 #include "solver.h"
 
