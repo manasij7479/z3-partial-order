@@ -23,6 +23,8 @@ Notes:
 #include "union_find.h"
 #include "solver.h"
 
+#include <unordered_map>
+
 #ifndef THEORY_SPECIAL_RELATIONS_H_
 #define THEORY_SPECIAL_RELATIONS_H_
 
@@ -120,7 +122,20 @@ namespace smt {
         bool_var2atom                  m_bool_var2atom;
 
         solver* m_nested_solver;
+        struct atom_hash {
+            size_t operator()(atom a) const {
+                return std::hash<int>()(a.v1()) ^ std::hash<int>()(a.v2()) ^ std::hash<bool>()(a.phase());
+            }
+        };
+//        struct atom_eq {
+//            size_t operator()(atom a, atom b) const {
+//                return a.v1() == b.v1() && a.v2() == b.v2() && a.phase() == b.phase();
+//            }
+//        };
 
+//        void put_to_cache(atom* a);
+        std::unordered_map<int, expr*> expr_cache;
+        std::unordered_map<unsigned, atom*> atom_cache;
         sort* m_int_sort;
 
         void del_atoms(unsigned old_size);
