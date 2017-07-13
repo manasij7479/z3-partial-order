@@ -911,6 +911,7 @@ namespace smt {
             int_vector const& edges = g.get_out_edges(v);
             unsigned l = lo[v];
             unsigned h = hi[v];
+            (void)h;
             nodes.pop_back();
             for (unsigned i = 0; i < edges.size(); ++i) {
                 SASSERT(l <= h);
