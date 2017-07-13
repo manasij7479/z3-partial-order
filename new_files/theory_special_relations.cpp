@@ -296,6 +296,12 @@ namespace smt {
     }
 
     lbool theory_special_relations::final_check(relation& r) {
+      // timer m_timer_fc; //for debugging
+      // static unsigned call_count = 0;
+      // static double total_call_times = 0.0;
+      // m_timer_fc.start();
+      // call_count++;
+
         lbool res = propagate(r);
         if (res != l_true) return res;
         switch (r.m_property) {
@@ -315,6 +321,12 @@ namespace smt {
             UNREACHABLE();
             res = l_undef;
         }
+
+        // double t = m_timer_fc.get_seconds();
+        // total_call_times += t;
+        // std::cout << "fc call " << call_count << ": " << t << " : "
+        //           << total_call_times << "\n";
+
         return res;
     }
 
@@ -427,8 +439,6 @@ namespace smt {
         std::vector<expr*> assumptions;
         std::vector<expr*> literals;
 
-        timer m_timer;
-        m_timer.start();
 //        double last = 0.0;
 
         std::unordered_map<int, std::vector<expr*>> map;
