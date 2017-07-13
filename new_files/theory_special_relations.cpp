@@ -93,6 +93,35 @@ namespace smt {
         return alloc(theory_special_relations, new_ctx->get_manager());
     }
 
+    void populate_k_vars(int v, int k,  std::unordered_map<int, std::vector<expr*>>& map, int& curr_id, ast_manager& m, sort** int_sort) {
+        auto need = map.find(v) == map.end() ? k : k - map[v].size();
+        for (auto i = 0; i < need; ++i) {
+            auto *fd = m.mk_func_decl(symbol(curr_id++), 0, int_sort, *int_sort);
+            map[v].push_back(m.mk_app(fd, unsigned(0),nullptr));
+        }
+    }
+
+//    void theory_special_relations::put_to_cache(atom* a) {
+//        static int curr_id = 100000;
+//        if (KVEC) {
+//            ast_manager& m = get_manager();
+//            std::unordered_map<int, std::vector<expr*>> map;
+//            populate_k_vars(a->v1(), 1, map, curr_id, m, &m_int_sort);
+//            populate_k_vars(a->v2(), 1, map, curr_id, m, &m_int_sort);
+
+//            auto e = m_autil.mk_lt(map[a->v1()][0], map[a->v2()][0]);
+//            if (!a->phase())
+//                e = m.mk_not(e);
+//            auto bool_sort = m.mk_bool_sort();
+//            auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
+//            auto b = m.mk_app(b_func, unsigned(0), nullptr);
+//            auto f = m.mk_implies(b, e);
+//            m_nested_solver->assert_expr(f);
+//            expr_cache[a] = b;
+//            atom_cache[b->get_id()] = a;
+//        }
+//    }
+
     bool theory_special_relations::internalize_atom(app * atm, bool gate_ctx) {
         TRACE("special_relations", tout << mk_pp(atm, get_manager()) << "\n";);
         SASSERT(m_util.is_special_relation(atm));
@@ -391,23 +420,16 @@ namespace smt {
 //        }
 //        return res;
         //std::cerr << "PROP : " << a.v1() << ' ' << a.v2() << "\n";
+//        put_to_cache(&a);
         return l_true;
     }
 
-    void populate_k_vars(int v, int k,  std::unordered_map<int, std::vector<expr*>>& map, int& curr_id, ast_manager& m, sort** int_sort) {
-        auto need = map.find(v) == map.end() ? k : k - map[v].size();
-        for (auto i = 0; i < need; ++i) {
-            auto *fd = m.mk_func_decl(symbol(curr_id++), 0, int_sort, *int_sort);
-            map[v].push_back(m.mk_app(fd, unsigned(0),nullptr));
-        }
-    }
-
     lbool theory_special_relations::final_check_po(relation& r) {
-        //std::cerr << "FINAL\n";
+        std::cerr << "FINAL\n";
         if (!KVEC) {
             lbool res = l_true;
             for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
-                atom& a = *r.m_asserted_atoms[i];
+                atom a = *r.m_asserted_atoms[i];
                 if (a.phase()) {
                     r.m_uf.merge(a.v1(), a.v2());
                     res = enable(a);
@@ -422,6 +444,9 @@ namespace smt {
                     unsigned timestamp = r.m_graph.get_timestamp();
                     if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
                         r.m_explanation.push_back(a.explanation());
+                        for (auto e : r.m_explanation) {
+                            std::cerr << "EX " << e.hash() << "\n";
+                        }
                         set_conflict(r);
                         res = l_false;
                     }
@@ -432,76 +457,112 @@ namespace smt {
         context& ctx = get_context();
         ast_manager& m = ctx.get_manager();
 
-        int k = 1;
-        int curr_id = 0;//1000000; // TODO : How to 'reserve' IDs and check if one is in use?
-
-
         std::vector<expr*> assumptions;
         std::vector<expr*> literals;
 
 //        double last = 0.0;
+        int k = 1;
+        static int curr_id = 100000;
 
         std::unordered_map<int, std::vector<expr*>> map;
-        //std::cerr << "HERE1\n";
-
-        for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
+//        std::cerr << "HERE1\n";
+        lbool res = l_true;
+        for (unsigned i = 0;res == l_true && i < r.m_asserted_atoms.size(); ++i) {
             atom& a = *r.m_asserted_atoms[i];
             if (!a.phase())
                 continue;
-            populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
-            populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
+//            res = enable(a);
+//            if (expr_cache.find(a.var()) == expr_cache.end()) {
+                populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
+                populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
 
-            literals.push_back(m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]));
-            auto bool_sort = m.mk_bool_sort();
-            auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
-            auto b = m.mk_app(b_func, unsigned(0), nullptr);
-            auto f = m.mk_implies(b, literals.back());
-            m_nested_solver->assert_expr( f );
+                literals.push_back(m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]));
+                auto bool_sort = m.mk_bool_sort();
+                auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
+                auto b = m.mk_app(b_func, unsigned(0), nullptr);
+                auto f = m.mk_implies(b, literals.back());
+                m_nested_solver->assert_expr( f );
+//                expr_cache[a.var()] = b;
+                atom_cache[b->get_id()] = &a;
+//            }
+//            assumptions.push_back(expr_cache[a.var()]);
             assumptions.push_back(b);
+//            assume_atom_map[assumptions.back()->get_id()] = i;
 //                if( i % 10 == 0 ) {
 //                  double nt = m_timer.get_seconds()*1000.0;
-//                  std::cerr << i << ":"<< nt-last << "\n";
+//                  //std::cerr << i << ":"<< nt-last << "\n";
 //                  last = nt;
 //                }
+            r.m_uf.merge(a.v1(), a.v2());
         }
-        for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
-            atom& a = *r.m_asserted_atoms[i];
+        for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
+            atom a = *r.m_asserted_atoms[i];
             if (a.phase())
                 continue;
-            populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
-            populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
+            if (r.m_uf.find(a.v1()) != r.m_uf.find(a.v2())) {
+                continue;
+            }
+//            if (expr_cache.find(a.var()) == expr_cache.end()) {
+                populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
+                populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
 
-            literals.push_back(m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]));
+                literals.push_back(m_autil.mk_lt(map[a.v1()][0], map[a.v2()][0]));
 
-            auto bool_sort = m.mk_bool_sort();
-            auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
-            auto b = m.mk_app(b_func, unsigned(0), nullptr);
+                auto bool_sort = m.mk_bool_sort();
+                auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
+                auto b = m.mk_app(b_func, unsigned(0), nullptr);
 
-            auto f = m.mk_implies( b, m.mk_not(literals.back()) );
-            m_nested_solver->assert_expr(f);
-
+                auto f = m.mk_implies( b, m.mk_not(literals.back()) );
+    //            m_nested_solver->push();
+                m_nested_solver->assert_expr(f);
+//                expr_cache[a.var()] = b;
+                atom_cache[b->get_id()] = &a;
+//            }
+//            assumptions.push_back(expr_cache[a.var()]);
             assumptions.push_back(b);
+            r.m_explanation.reset();
             if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
+                ptr_vector<expr> unsat_core;
+                m_nested_solver->get_unsat_core(unsat_core);
+                for (expr* e : unsat_core) {
+//                    std::cerr << "UC " << e->get_id() << "\n";
+                    atom& a = *atom_cache[e->get_id()];
+                    r.m_explanation.push_back(a.explanation());
+                }
+                for (auto e : r.m_explanation) {
+                    std::cerr << "EX " << e.hash() << "\n";
+                }
                 set_conflict(r);
-                return l_false;
+                res = l_false;
+
+//                unsigned timestamp = r.m_graph.get_timestamp();
+//                if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
+//                    r.m_explanation.push_back(a.explanation());
+//                    for (auto e : r.m_explanation) {
+//                        std::cerr << "EX " << e.hash() << "\n";
+//                    }
+//                    set_conflict(r);
+//                    res = l_false;
+//                }
 
             }
             assumptions.pop_back();
+//            m_nested_solver->pop(1);
 
 //                if( i % 10 == 0 ) {
 //                  double nt = m_timer.get_seconds()*1000.0;
-//                  std::cerr << i << ":"<< nt-last << "\n";
+//                  //std::cerr << i << ":"<< nt-last << "\n";
 //                  last = nt;
 //                }
         }
-        if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
-            set_conflict(r);
-            return l_false;
-        } else {
-            return l_true;
-        }
-        UNREACHABLE();
-        return l_true;
+//        if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
+//            set_conflict(r);
+//            return l_false;
+//        } else {
+//            return l_true;
+//        }
+//        UNREACHABLE();
+        return res;
     }
 
     lbool theory_special_relations::propagate(relation& r) {
@@ -540,7 +601,7 @@ namespace smt {
 
     void theory_special_relations::assign_eh(bool_var v, bool is_true) {
         TRACE("special_relations", tout << "assign bv" << v << " " << (is_true?" <- true":" <- false") << "\n";);
-        atom* a;
+        atom* a = 0;
         VERIFY(m_bool_var2atom.find(v, a));
         a->set_phase(is_true);
         a->get_relation().m_asserted_atoms.push_back(a);
@@ -553,6 +614,7 @@ namespace smt {
             it->m_value->push();
         }
         m_atoms_lim.push_back(m_atoms.size());
+//        m_nested_solver->push();
         //std::cerr << "PUSH\n";
     }
 
@@ -563,7 +625,8 @@ namespace smt {
         }
         unsigned new_lvl = m_atoms_lim.size() - num_scopes;
         del_atoms(m_atoms_lim[new_lvl]);
-        //std::cerr << "POP "<< num_scopes<<"\n";
+        std::cerr << "POP "<< num_scopes<<"\n";
+//        m_nested_solver->pop(num_scopes);
     }
 
     void theory_special_relations::del_atoms(unsigned old_size) {
