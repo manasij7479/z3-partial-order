@@ -459,6 +459,13 @@ namespace smt {
 
         std::vector<expr*> assumptions;
         std::vector<expr*> literals;
+        struct ctx_RAII {
+            ctx_RAII(context& ctx_) : ctx(ctx_) {ctx.push();}
+            ~ctx_RAII() {ctx.pop(1);}
+            context& ctx;
+        };
+        ctx_RAII scope(ctx);
+        (void)scope;
 
 //        double last = 0.0;
         int k = 1;
@@ -471,8 +478,8 @@ namespace smt {
             atom& a = *r.m_asserted_atoms[i];
             if (!a.phase())
                 continue;
-//            res = enable(a);
-//            if (expr_cache.find(a.var()) == expr_cache.end()) {
+            res = enable(a);
+            if (expr_cache.find(a.var()) == expr_cache.end()) {
                 populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
                 populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
 
@@ -481,12 +488,12 @@ namespace smt {
                 auto b_func = m.mk_func_decl(symbol(curr_id++), 0, &bool_sort, bool_sort);
                 auto b = m.mk_app(b_func, unsigned(0), nullptr);
                 auto f = m.mk_implies(b, literals.back());
-                m_nested_solver->assert_expr( f );
-//                expr_cache[a.var()] = b;
+                ctx.assert_expr( f );
+                expr_cache[a.var()] = b;
                 atom_cache[b->get_id()] = &a;
-//            }
-//            assumptions.push_back(expr_cache[a.var()]);
-            assumptions.push_back(b);
+            }
+            assumptions.push_back(expr_cache[a.var()]);
+//            assumptions.push_back(b);
 //            assume_atom_map[assumptions.back()->get_id()] = i;
 //                if( i % 10 == 0 ) {
 //                  double nt = m_timer.get_seconds()*1000.0;
@@ -502,7 +509,7 @@ namespace smt {
             if (r.m_uf.find(a.v1()) != r.m_uf.find(a.v2())) {
                 continue;
             }
-//            if (expr_cache.find(a.var()) == expr_cache.end()) {
+            if (expr_cache.find(a.var()) == expr_cache.end()) {
                 populate_k_vars(a.v1(), k, map, curr_id, m, &m_int_sort);
                 populate_k_vars(a.v2(), k, map, curr_id, m, &m_int_sort);
 
@@ -514,17 +521,24 @@ namespace smt {
 
                 auto f = m.mk_implies( b, m.mk_not(literals.back()) );
     //            m_nested_solver->push();
-                m_nested_solver->assert_expr(f);
-//                expr_cache[a.var()] = b;
+                ctx.assert_expr(f);
+                expr_cache[a.var()] = b;
                 atom_cache[b->get_id()] = &a;
+            }
+            assumptions.push_back(expr_cache[a.var()]);
+//            if (ctx.inconsistent()) {
+//                set_conflict(r);
+//                return l_false;
 //            }
-//            assumptions.push_back(expr_cache[a.var()]);
-            assumptions.push_back(b);
+
+//            assumptions.push_back(b);
             r.m_explanation.reset();
-            if (m_nested_solver->check_sat(assumptions.size(), assumptions.data()) == l_false) {
-                ptr_vector<expr> unsat_core;
-                m_nested_solver->get_unsat_core(unsat_core);
-                for (expr* e : unsat_core) {
+            auto lb = ctx.check(assumptions.size(), assumptions.data());
+            if (lb == l_false) {
+//                ptr_vector<expr> unsat_core;
+//                m_nested_solver->get_unsat_core(unsat_core);
+                for (int i = 0; i < ctx.get_unsat_core_size(); ++i) {
+                    auto * e = ctx.get_unsat_core_expr(i);
 //                    std::cerr << "UC " << e->get_id() << "\n";
                     atom& a = *atom_cache[e->get_id()];
                     r.m_explanation.push_back(a.explanation());
