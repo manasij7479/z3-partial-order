@@ -80,8 +80,8 @@ namespace smt {
         params.set_bool("unsat_core", true);
 
 //        reg_decl_plugins(m_nested_ast_mgr);
-        m_nested_solver = mk_smt_solver(m, params, symbol("QF_LIA"));
-        m_int_sort = m_autil.mk_int();
+        m_nested_solver = mk_smt_solver(m, params, symbol("QF_LRA"));
+        m_int_sort = m_autil.mk_real();
     }
 
     theory_special_relations::~theory_special_relations() {
