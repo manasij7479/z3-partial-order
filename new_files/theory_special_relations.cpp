@@ -29,6 +29,7 @@ Notes:
 #include "reg_decl_plugins.h"
 
 static constexpr bool KVEC = false;
+static constexpr bool HYBRID_SEARCH = true;
 
 namespace smt {
 
@@ -442,23 +443,17 @@ namespace smt {
                     // find v1 -> v3 -> v4 -> v2 path
                     r.m_explanation.reset();
                     unsigned timestamp = r.m_graph.get_timestamp();
-                    if (r.m_graph.find_path(a.v1(), a.v2(), timestamp, r)) {
-//                    if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
-//                        for (auto x : r.m_explanation) {
-//                           std::cerr << x.hash() << ' ';
-//                        }
+                    auto found_path = HYBRID_SEARCH ?
+                        r.m_graph.find_path(a.v1(), a.v2(), timestamp, r) :
+                        r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r);
+                    if (found_path) {
                         r.m_explanation.push_back(a.explanation());
-//                        for (auto e : r.m_explanation) {
-//                            std::cerr << "EX " << e.hash() << "\n";
-//                        }
-
-//                        std::cerr << '\n';
                         set_conflict(r);
                         res = l_false;
                     }
                 }
             }
-//            std::cerr << "COUNT " << r.m_graph.m_total_count << std::endl;
+//            std::cerr << "COUNT " << r.m_graph.//std << std::endl;
             return res;
         }
         context& ctx = get_context();
