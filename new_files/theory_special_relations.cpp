@@ -28,7 +28,7 @@ Notes:
 #include "solver/solver.h"
 #include "reg_decl_plugins.h"
 
-static constexpr bool KVEC = true;
+static constexpr bool KVEC = false;
 
 namespace smt {
 
@@ -406,35 +406,35 @@ namespace smt {
     }
 
     lbool theory_special_relations::propagate_po(atom& a) {
-//        lbool res = l_true;
-//        // if (a.phase()) {
-//        //   res = enable(a);
-//        // }
-//        relation& r = a.get_relation();
-//        if (a.phase()) {
-//            r.m_uf.merge(a.v1(), a.v2());
-//            res = enable(a);
-//        }
+        lbool res = l_true;
+        // if (a.phase()) {
+        //   res = enable(a);
+        // }
+        relation& r = a.get_relation();
+        if (a.phase()) {
+            r.m_uf.merge(a.v1(), a.v2());
+            res = enable(a);
+        }
 //        else if (r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
-////             res = enable(a);
+//             res = enable(a);
 //        }
-//        return res;
-        //std::cerr << "PROP : " << a.v1() << ' ' << a.v2() << "\n";
-//        put_to_cache(&a);
-        return l_true;
+        return res;
+//        //std::cerr << "PROP : " << a.v1() << ' ' << a.v2() << "\n";
+////        put_to_cache(&a);
+//        return l_true;
     }
 
     lbool theory_special_relations::final_check_po(relation& r) {
-        std::cerr << "FINAL\n";
+//        std::cerr << "FINAL\n";
         if (!KVEC) {
             lbool res = l_true;
-            for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
-                atom a = *r.m_asserted_atoms[i];
-                if (a.phase()) {
-                    r.m_uf.merge(a.v1(), a.v2());
-                    res = enable(a);
-                }
-            }
+//            for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
+//                atom a = *r.m_asserted_atoms[i];
+//                if (a.phase()) {
+//                    r.m_uf.merge(a.v1(), a.v2());
+//                    res = enable(a);
+//                }
+//            }
             for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
                 atom& a = *r.m_asserted_atoms[i];
                 if (!a.phase() && r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
@@ -442,16 +442,23 @@ namespace smt {
                     // find v1 -> v3 -> v4 -> v2 path
                     r.m_explanation.reset();
                     unsigned timestamp = r.m_graph.get_timestamp();
-                    if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
+                    if (r.m_graph.find_path(a.v1(), a.v2(), timestamp, r)) {
+//                    if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
+//                        for (auto x : r.m_explanation) {
+//                           std::cerr << x.hash() << ' ';
+//                        }
                         r.m_explanation.push_back(a.explanation());
-                        for (auto e : r.m_explanation) {
-                            std::cerr << "EX " << e.hash() << "\n";
-                        }
+//                        for (auto e : r.m_explanation) {
+//                            std::cerr << "EX " << e.hash() << "\n";
+//                        }
+
+//                        std::cerr << '\n';
                         set_conflict(r);
                         res = l_false;
                     }
                 }
             }
+//            std::cerr << "COUNT " << r.m_graph.m_total_count << std::endl;
             return res;
         }
         context& ctx = get_context();
@@ -625,7 +632,7 @@ namespace smt {
         }
         unsigned new_lvl = m_atoms_lim.size() - num_scopes;
         del_atoms(m_atoms_lim[new_lvl]);
-        std::cerr << "POP "<< num_scopes<<"\n";
+//        std::cerr << "POP "<< num_scopes<<"\n";
 //        m_nested_solver->pop(num_scopes);
     }
 
