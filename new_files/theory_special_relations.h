@@ -61,9 +61,9 @@ namespace smt {
                 r.ensure_var(v2);
                 literal_vector ls;
                 ls.push_back(literal(b, false));
-                m_pos = r.m_graph.add_edge(v1, v2, s_integer(0), ls);  // v2 <= v1
+                m_pos = r.m_graph.add_edge(v1, v2, s_integer(1), ls);  // v2 <= v1
                 ls[0] = literal(b, true);
-                m_neg = r.m_graph.add_edge(v2, v1, s_integer(-1), ls); // v1 <= v2 - 1
+                m_neg = r.m_graph.add_edge(v2, v1, s_integer(-2), ls); // v1 <= v2 - 1
             }
             bool_var var() const { return m_bvar;}
             relation& get_relation() const { return m_relation; }

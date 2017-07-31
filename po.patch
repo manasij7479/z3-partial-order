@@ -472,7 +472,7 @@ index 41890dd0..9905e489 100644
      bit_blaster
      cmd_context
 diff --git a/src/smt/diff_logic.h b/src/smt/diff_logic.h
-index f55945ce..076c13bd 100644
+index f55945ce..e191df3a 100644
 --- a/src/smt/diff_logic.h
 +++ b/src/smt/diff_logic.h
 @@ -26,6 +26,8 @@ Revision History:
@@ -1004,6 +1004,24 @@ index f55945ce..076c13bd 100644
  
      void dfs(dl_var v, int_vector & scc_id) {
          m_dfs_time[v] = m_next_dfs_time;
+@@ -1122,7 +1162,7 @@ public:
+             }
+             SASSERT(e.get_source() == v);
+             set_gamma(e, gamma);
+-            if (gamma.is_zero()) {
++            if (gamma.is_one()) {
+                 dl_var target = e.get_target();
+                 if (m_dfs_time[target] == -1) {
+                     dfs(target, scc_id);
+@@ -1178,7 +1218,7 @@ public:
+                 }
+                 SASSERT(e.get_source() == v);
+                 set_gamma(e, gamma);
+-                if (gamma.is_zero()) {
++                if (gamma.is_one()) {
+                     dl_var target = e.get_target();
+                     if (m_dfs_time[target] == -1) {
+                         succ.push_back(target);
 @@ -1191,11 +1231,11 @@ public:
      }
  
@@ -1096,7 +1114,7 @@ index f55945ce..076c13bd 100644
                  set_gamma(e, gamma);
                  TRACE("dl_bfs", tout << "processing edge: "; display_edge(tout, e); tout << "gamma: " << gamma << "\n";);
 -                if (gamma.is_zero() && e.get_timestamp() < timestamp) {
-+                if ((gamma.is_zero() || (!zero_edge && gamma.is_neg())) && e.get_timestamp() < timestamp) {
++                if ((gamma.is_one() || (!zero_edge && gamma.is_neg())) && e.get_timestamp() < timestamp) {
                      dl_var curr_target = e.get_target();
 -                    TRACE("dl_bfs", tout << "curr_target: " << curr_target << 
 +                    TRACE("dl_bfs", tout << "curr_target: " << curr_target <<
@@ -1152,7 +1170,7 @@ index f55945ce..076c13bd 100644
 +                    continue;
 +                }
 +                set_gamma(e, gamma);
-+                if ((gamma.is_zero() || (!zero_edge && gamma.is_neg()))
++                if ((gamma.is_one() || (!zero_edge && gamma.is_neg()))
 +                        && e.get_timestamp() < timestamp) {
 +                    dl_var curr_target = e.get_target();
 +                    if (curr_target == target) {

@@ -29,7 +29,7 @@ Notes:
 #include "reg_decl_plugins.h"
 
 static constexpr bool KVEC = false;
-static constexpr bool HYBRID_SEARCH = true;
+static constexpr bool HYBRID_SEARCH = false;
 
 namespace smt {
 
@@ -69,8 +69,8 @@ namespace smt {
         literal_vector ls;
         ls.push_back(l);
         return
-            m_graph.enable_edge(m_graph.add_edge(v1, v2, s_integer(0), ls)) &&
-            m_graph.enable_edge(m_graph.add_edge(v2, v1, s_integer(0), ls));
+            m_graph.enable_edge(m_graph.add_edge(v1, v2, s_integer(1), ls)) &&
+            m_graph.enable_edge(m_graph.add_edge(v2, v1, s_integer(1), ls));
     }
 
     theory_special_relations::theory_special_relations(ast_manager& m):
@@ -438,6 +438,12 @@ namespace smt {
 //            }
             for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
                 atom& a = *r.m_asserted_atoms[i];
+
+//                std::cerr << r.m_graph.get_assignment(a.v2()) << ' ' << r.m_graph.get_assignment(a.v1()) << std::endl;
+//                if (r.m_graph.get_assignment(a.v2()) < r.m_graph.get_assignment(a.v1())) {
+//                    continue;
+//                }
+
                 if (!a.phase() && r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
                     // v1 !-> v2
                     // find v1 -> v3 -> v4 -> v2 path
@@ -447,6 +453,10 @@ namespace smt {
                         r.m_graph.find_path(a.v1(), a.v2(), timestamp, r) :
                         r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r);
                     if (found_path) {
+//                        for (auto ex : r.m_explanation) {
+//                            std::cerr << ex.hash() << ' ';
+//                        }
+//                        std::cerr << std::endl;
                         r.m_explanation.push_back(a.explanation());
                         set_conflict(r);
                         res = l_false;
@@ -664,7 +674,7 @@ namespace smt {
             dl_var src = g.get_source(i);
             dl_var dst = g.get_target(i);
             if (get_enode(src)->get_root() == get_enode(dst)->get_root()) continue;
-            VERIFY(g.enable_edge(g.add_edge(src, dst, s_integer(-1), literal_vector())));
+            VERIFY(g.enable_edge(g.add_edge(src, dst, s_integer(-2), literal_vector())));
         }
         TRACE("special_relations", g.display(tout););
     }
@@ -684,7 +694,7 @@ namespace smt {
                             dl_var src2 = g.get_source(e2);
                             if (get_enode(src1)->get_root() == get_enode(src2)->get_root()) continue;
                             if (!disconnected(g, src1, src2)) continue;
-                            VERIFY(g.enable_edge(g.add_edge(src1, src2, s_integer(-1), literal_vector())));
+                            VERIFY(g.enable_edge(g.add_edge(src1, src2, s_integer(-2), literal_vector())));
                         }
                     }
                 }
